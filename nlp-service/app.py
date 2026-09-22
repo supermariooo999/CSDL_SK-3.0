@@ -1,16 +1,23 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Dict, List
+from pathlib import Path
 import re
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "models" / "vietnamese-bi-encoder"
+
 app = FastAPI(title="SangKien NLP")
 
-print("⏳ Đang tải model vietnamese-bi-encoder (lần đầu mất vài phút)...")
-model = SentenceTransformer("bkai-foundation-models/vietnamese-bi-encoder")
+print(f"⏳ Đang tải model: {MODEL_PATH}")
+model = SentenceTransformer(
+    str(MODEL_PATH),
+    local_files_only=True
+)
 print("✅ Model đã sẵn sàng!")
 
 

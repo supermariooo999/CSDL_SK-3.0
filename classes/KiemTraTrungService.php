@@ -10,40 +10,102 @@ class KiemTraTrungService
     public function __construct() { $this->sim = new SangKienSimilarity(); }
 
     /** Check 1 sáng kiến với toàn bộ trong năm */
-    public function checkOne(int $id, ?int $linhVucId = null, float $minScore = 40.0): array
-    {
-        $sk = DB::one("SELECT id, ma, ten, nam_id FROM qlsk_sang_kien WHERE id = ?", [$id]);
-        if (!$sk) throw new RuntimeException('Sáng kiến không tồn tại');
+    public function checkOne(int $id, ?int $linhVucId = null, float $minScore = 40.0): array {
+        $sk = DB::one(
+            "SELECT id, ma, ten, nam_id, linh_vuc_id
+            FROM qlsk_sang_kien
+            WHERE id = ?",
+            [$id]
+        );
 
-        $sql = "SELECT id FROM qlsk_sang_kien WHERE nam_id = ? AND id <> ?";
-        $p   = [$sk['nam_id'], $id];
-        if ($linhVucId) { $sql .= " AND linh_vuc_id = ?"; $p[] = $linhVucId; }
+        if (!$sk) {
+            throw new RuntimeException('Sáng kiến không tồn tại');
+        }
 
-        $list = DB::all($sql, $p);
+        /*
+        * Lấy TẤT CẢ sáng kiến khác,
+        * KHÔNG giới hạn năm.
+        */
+        $sql = "
+            SELECT id
+            FROM qlsk_sang_kien
+            WHERE id <> ?
+        ";
+
+        // CHỈ truyền đúng tham số cho WHERE id <> ?
+        $params = [$id];
+
+        /*
+        * Nếu muốn giới hạn theo lĩnh vực thì mới thêm điều kiện này.
+        *
+        * null hoặc 0 = tất cả lĩnh vực.
+        */
+        if ($linhVucId !== null && $linhVucId > 0) {
+            $sql .= " AND linh_vuc_id = ?";
+            $params[] = $linhVucId;
+        }
+
+        $sql .= " ORDER BY id ASC";
+
+        $list = DB::all($sql, $params);
+
         $results = [];
+
         foreach ($list as $r) {
+
+            $otherId = (int)$r['id'];
+
             try {
-                $cmp = $this->sim->compare($id, (int)$r['id']);
+
+                $cmp = $this->sim->compare(
+                    $id,
+                    $otherId
+                );
+
             } catch (Throwable $e) {
-                error_log("[checkOne] id={$r['id']} err=" . $e->getMessage());
+
+                error_log(
+                    "[checkOne] {$id}-{$otherId} err=" .
+                    $e->getMessage()
+                );
+
                 continue;
             }
-            if ($cmp['overall'] < $minScore) continue;
 
-            // Rút gọn sections
-            $secScore = [];
-            foreach ($cmp['sections'] as $k => $v) $secScore[$k] = $v['score'] ?? 0;
+            /*
+            * minScore = 0 => lấy tất cả.
+            */
+            if (
+                ($cmp['classification']['level'] ?? '') === 'THAP'
+            ) {
+                continue;
+            }
+            
+            if ($cmp['overall'] < $minScore) {
+                continue;
+            }
 
             $results[] = [
                 'sang_kien'      => $cmp['b'],
                 'overall'        => $cmp['overall'],
                 'classification' => $cmp['classification'],
-                'sections'       => $secScore,
+                'sections'       => $cmp['sections'],
             ];
         }
-        usort($results, fn($x, $y) => $y['overall'] <=> $x['overall']);
 
-        return ['sang_kien' => $sk, 'ket_qua' => $results];
+        /*
+        * Tương đồng cao → thấp.
+        */
+        usort(
+            $results,
+            fn($a, $b) =>
+                $b['overall'] <=> $a['overall']
+        );
+
+        return [
+            'sang_kien' => $sk,
+            'ket_qua'   => $results,
+        ];
     }
 
     /**

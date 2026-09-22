@@ -421,3 +421,18 @@ window.getSelectedIdeas = function () {
     });
 
 };
+
+function toast(title, icon = "info") {
+    Swal.fire({
+        icon: icon,
+        title: title,
+
+        toast: true,
+        position: "top-end",
+
+        showConfirmButton: false,
+
+        timer: 2200,
+        timerProgressBar: true
+    });
+}

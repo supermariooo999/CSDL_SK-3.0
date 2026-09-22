@@ -17,6 +17,8 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
 
 <link href="assets/css/app.css" rel="stylesheet">
+<link href="assets/css/add.css" rel="stylesheet">
+<link href="assets/css/modal.css" rel="stylesheet">
 
 <style>
 
@@ -50,6 +52,10 @@
                 </a>
             </li>
 
+            <li class="nav-item">
+                
+            </li>
+
         </ul>
 
     </div>
@@ -64,16 +70,23 @@
          PAGE HEADER
     ====================================================== -->
 
-    <div class="page-header">
+    <div class="d-flex justify-content-between align-items-center mb-3">
 
-        <h1 class="page-title">
-            Kiểm tra trùng sáng kiến
-        </h1>
+        <div>
+            <h4 class="mb-1">
+                Quản lý sáng kiến
+            </h4>
+            <div class="text-muted small">
+                Danh sách các sáng kiến
+            </div>
+        </div>
 
-        <p class="page-description">
-            Chọn nhiều sáng kiến trong danh sách để hệ thống phân tích
-            và phát hiện các sáng kiến có khả năng trùng lặp.
-        </p>
+        <button type="button"
+                class="btn btn-primary px-3"
+                onclick="openAddInitiativeModal()">
+            <i class="bi bi-plus-lg me-1"></i>
+            Thêm sáng kiến
+        </button>
 
     </div>
 
@@ -335,21 +348,686 @@
 
 </div>
 
+<!-- =========================================================
+     MODAL KẾT QUẢ KIỂM TRA TRÙNG
+========================================================= -->
+
+<div
+    class="modal fade"
+    id="duplicateResultModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+
+        <div class="modal-content duplicate-modal">
+
+            <!-- HEADER -->
+
+            <div class="modal-header duplicate-modal-header">
+
+                <div>
+
+                    <div class="duplicate-modal-kicker">
+                        <i class="bi bi-shield-check me-1"></i>
+                        PHÂN TÍCH TRÙNG SÁNG KIẾN
+                    </div>
+
+                    <h4 class="modal-title mb-1">
+                        Kết quả kiểm tra
+                    </h4>
+
+                    <div
+                        id="duplicateResultSubtitle"
+                        class="small text-muted"
+                    >
+                        Đang chuẩn bị kết quả...
+                    </div>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Đóng"
+                ></button>
+
+            </div>
+
+
+            <!-- SUMMARY -->
+
+            <div class="duplicate-summary">
+
+                <div class="duplicate-summary-item">
+
+                    <div class="summary-icon bg-primary-subtle text-primary">
+                        <i class="bi bi-check2-square"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Đã chọn
+                        </div>
+
+                        <strong id="duplicateSelectedCount">
+                            0
+                        </strong>
+
+                        <span>sáng kiến</span>
+                    </div>
+
+                </div>
+
+
+                <div class="duplicate-summary-item">
+
+                    <div class="summary-icon bg-warning-subtle text-warning-emphasis">
+                        <i class="bi bi-search"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Đã phân tích
+                        </div>
+
+                        <strong id="duplicateComparedCount">
+                            0
+                        </strong>
+
+                        <span>trường hợp</span>
+                    </div>
+
+                </div>
+
+
+                <div class="duplicate-summary-item">
+
+                    <div class="summary-icon bg-danger-subtle text-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+
+                    <div>
+                        <div class="summary-label">
+                            Có khả năng trùng
+                        </div>
+
+                        <strong id="duplicateHighCount">
+                            0
+                        </strong>
+
+                        <span>trường hợp</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- BODY -->
+
+            <div
+                class="modal-body duplicate-modal-body"
+                id="duplicateResultBody"
+            >
+
+                <div class="duplicate-loading">
+
+                    <div class="spinner-border text-primary"></div>
+
+                    <div class="mt-3">
+                        Đang phân tích sáng kiến...
+                    </div>
+
+                    <div class="small text-muted mt-1">
+                        Vui lòng chờ trong giây lát
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- FOOTER -->
+
+            <div class="modal-footer duplicate-modal-footer">
+
+                <div class="small text-muted me-auto">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Hệ thống chỉ đưa vào kết quả những sáng kiến
+                    có khả năng tương đồng sau bước lọc tên.
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    data-bs-dismiss="modal"
+                >
+                    Đóng
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="compareDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">
+            <i class="bi bi-layout-split me-2"></i>
+            Đối chiếu chi tiết
+          </h5>
+          <div id="compareModalSubtitle" class="small text-muted mt-1"></div>
+        </div>
+
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Đóng">
+        </button>
+      </div>
+
+      <div class="modal-body" id="compareModalBody">
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="initiativeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1" id="initiativeModalTitle">
+                        Thêm sáng kiến
+                    </h5>
+                    <div class="text-muted small">
+                        Nhập thông tin theo từng bước
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <!-- STEPPER -->
+                <div class="stepper mb-4">
+
+                    <div class="step-item active" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-label">
+                            <strong>Thông tin chung</strong>
+                            <small>Thông tin sáng kiến</small>
+                        </div>
+                    </div>
+
+                    <div class="step-line"></div>
+
+                    <div class="step-item" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-label">
+                            <strong>Tác giả</strong>
+                            <small>Chọn người tham gia</small>
+                        </div>
+                    </div>
+
+                    <div class="step-line"></div>
+
+                    <div class="step-item" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">
+                            <strong>Tài liệu</strong>
+                        </div>
+                    </div>
+
+                </div>
+
+                <form id="initiativeForm"
+                      enctype="multipart/form-data">
+
+                    <input type="hidden"
+                           name="action"
+                           value="save">
+
+                    <input type="hidden"
+                           name="id"
+                           id="initiativeId"
+                           value="">
+
+                    <!-- ========================= -->
+                    <!-- BƯỚC 1 -->
+                    <!-- ========================= -->
+                    <div class="form-step active" data-step="1">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    Mã sáng kiến <span class="text-danger">*</span>
+                                </label>
+
+                                <input type="text"
+                                       class="form-control"
+                                       name="ma"
+                                       id="ma"
+                                       required
+                                       maxlength="50">
+                            </div>
+
+                            <div class="col-md-8">
+                                <label class="form-label">
+                                    Tên sáng kiến <span class="text-danger">*</span>
+                                </label>
+
+                                <input type="text"
+                                       class="form-control"
+                                       name="ten"
+                                       id="ten"
+                                       required
+                                       maxlength="500">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    Năm <span class="text-danger">*</span>
+                                </label>
+
+                                <select class="form-select"
+                                        name="nam_id"
+                                        id="nam_id"
+                                        required>
+                                    <option value="">-- Chọn năm --</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    Lĩnh vực <span class="text-danger">*</span>
+                                </label>
+
+                                <select class="form-select"
+                                        name="linh_vuc_id"
+                                        id="linh_vuc_id"
+                                        required>
+                                    <option value="">-- Chọn lĩnh vực --</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4" id="ngayNopField">
+                                <label class="form-label">
+                                    Ngày nộp
+                                </label>
+
+                                <input type="date"
+                                    class="form-control"
+                                    name="ngay_nop"
+                                    id="ngay_nop"
+                                    placeholder="dd/mm/yyyy"
+                                    autocomplete="off">
+                            </div>
+
+                            <div class="col-md-4" id="trangThaiField">
+                                <label class="form-label">
+                                    Trạng thái
+                                </label>
+
+                                <select class="form-select"
+                                        name="trang_thai"
+                                        id="trang_thai">
+
+                                    <option value="DA_NOP">
+                                        Đã nộp
+                                    </option>
+
+                                    <option value="DANG_CHAM">
+                                        Đang chấm
+                                    </option>
+
+                                    <option value="DA_CHAM">
+                                        Đã chấm
+                                    </option>
+
+                                </select>
+                            </div>
+
+                            <div
+                                class="mb-3"
+                                id="otherCQTField"
+                                style="display: none;"
+                            >
+                                <label
+                                    for="ten_co_quan_thue"
+                                    class="form-label fw-semibold"
+                                >
+                                    Tên Cơ quan Thuế
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    name="ten_co_quan_thue"
+                                    id="ten_co_quan_thue"
+                                    maxlength="255"
+                                    placeholder="Nhập tên Cơ quan Thuế"
+                                >
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ========================= -->
+                    <!-- BƯỚC 2 -->
+                    <!-- ========================= -->
+                    <div class="form-step" data-step="2" id="authorStep">
+
+                        <div class="alert alert-light border">
+                            <i class="bi bi-info-circle me-1"></i>
+
+                            Người được chọn đầu tiên sẽ là
+                            <strong>Tác giả</strong>.
+                            Những người tiếp theo là
+                            <strong>Đồng tác giả</strong>.
+                        </div>
+
+                        <div class="row g-3 mb-3">
+
+                            <div class="col-md-8">
+                                <label class="form-label">
+                                    Tìm nhân viên
+                                </label>
+
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+
+                                    <input type="text"
+                                           class="form-control"
+                                           id="authorSearch"
+                                           placeholder="Nhập họ tên hoặc mã nhân viên...">
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    Phòng ban
+                                </label>
+
+                                <select class="form-select"
+                                        id="filterAuthorDepartment">
+
+                                    <option value="">
+                                        -- Tất cả phòng ban --
+                                    </option>
+
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <div class="border rounded"
+                             style="max-height: 360px; overflow-y:auto;">
+
+                            <div id="employeeList"
+                                 class="list-group list-group-flush">
+
+                                <div class="text-center text-muted py-4">
+                                    Đang tải nhân viên...
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-4">
+
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong>
+                                    Người đã chọn
+                                </strong>
+
+                                <span class="badge bg-primary"
+                                      id="authorCount">
+                                    0
+                                </span>
+                            </div>
+
+                            <div id="selectedAuthors"
+                                 class="border rounded p-2 bg-light">
+
+                                <div class="text-muted text-center py-3">
+                                    Chưa chọn tác giả
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ========================= -->
+                    <!-- BƯỚC 3 -->
+                    <!-- ========================= -->
+                    <div class="form-step" data-step="3">
+
+                        <!-- MẪU 01 -->
+                        <div class="file-box mb-3">
+
+                            <div class="file-box-title">
+                                <div>
+                                    <i class="bi bi-file-earmark-word text-primary"></i>
+                                    <strong>Mẫu số 01/SK</strong>
+                                </div>
+
+                                <span class="badge bg-secondary">
+                                    01 file
+                                </span>
+                            </div>
+
+                            <div class="mt-3">
+                                <input type="file"
+                                       class="form-control"
+                                       name="file_mau_01"
+                                       id="file_mau_01"
+                                       accept=".doc,.docx">
+
+                                <div class="form-text">
+                                    Chỉ nhận file DOC, DOCX. Tối đa 20MB.
+                                </div>
+
+                                <div id="existingFileMau01"
+                                     class="mt-2"></div>
+                            </div>
+
+                        </div>
+
+
+                        <!-- MẪU 05 -->
+                        <div class="file-box mb-3">
+
+                            <div class="file-box-title">
+                                <div>
+                                    <i class="bi bi-file-earmark-word text-primary"></i>
+                                    <strong>Mẫu số 05/SK</strong>
+                                </div>
+
+                                <span class="badge bg-secondary">
+                                    01 file
+                                </span>
+                            </div>
+
+                            <div class="mt-3">
+
+                                <input type="file"
+                                       class="form-control"
+                                       name="file_mau_05"
+                                       id="file_mau_05"
+                                       accept=".doc,.docx">
+
+                                <div class="form-text">
+                                    Chỉ nhận file DOC, DOCX. Tối đa 20MB.
+                                </div>
+
+                                <div id="existingFileMau05"
+                                     class="mt-2"></div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- MẪU 06 -->
+                        <div class="file-box mb-3">
+
+                            <div class="file-box-title">
+                                <div>
+                                    <i class="bi bi-file-earmark-word text-primary"></i>
+                                    <strong>Mẫu số 06/SK</strong>
+                                </div>
+
+                                <span class="badge bg-secondary">
+                                    01 file
+                                </span>
+                            </div>
+
+                            <div class="mt-3">
+
+                                <input type="file"
+                                       class="form-control"
+                                       name="file_mau_06"
+                                       id="file_mau_06"
+                                       accept=".doc,.docx">
+
+                                <div class="form-text">
+                                    Chỉ nhận file DOC, DOCX. Tối đa 20MB.
+                                </div>
+
+                                <div id="existingFileMau06"
+                                     class="mt-2"></div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- MINH CHỨNG -->
+                        <div class="file-box">
+
+                            <div class="file-box-title">
+
+                                <div>
+                                    <i class="bi bi-paperclip text-success"></i>
+                                    <strong>Tài liệu minh chứng</strong>
+                                </div>
+
+                                <span class="badge bg-success">
+                                    Chọn nhiều
+                                </span>
+
+                            </div>
+
+                            <div class="mt-3">
+
+                                <input type="file"
+                                       class="form-control"
+                                       name="files_minh_chung[]"
+                                       id="files_minh_chung"
+                                       multiple
+                                       accept=".doc,.docx,.pdf,.jpg,.jpeg,.png,.xls,.xlsx">
+
+                                <div class="form-text">
+                                    Có thể chọn nhiều file.
+                                    DOC, DOCX, PDF, JPG, PNG, XLS, XLSX.
+                                    Tối đa 20MB/file.
+                                </div>
+
+                                <div id="minhChungPreview"
+                                     class="mt-3"></div>
+
+                                <div id="existingFilesMinhChung"
+                                     class="mt-3"></div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal">
+                    Hủy
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline-secondary d-none"
+                        id="btnPrevStep">
+                    <i class="bi bi-arrow-left"></i>
+                    Quay lại
+                </button>
+
+                <button type="button"
+                        class="btn btn-primary"
+                        id="btnNextStep">
+                    Tiếp tục
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+
+                <button type="button"
+                        class="btn btn-success d-none"
+                        id="btnSaveInitiative">
+                    <i class="bi bi-check-lg"></i>
+                    Lưu sáng kiến
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+</div>
 
 <!-- =========================================================
      BOOTSTRAP
 ========================================================= -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.14.5/sweetalert2.all.min.js"
+></script>
 
 
 <!-- =========================================================
      EXISTING JS
 ========================================================= -->
 
-<!-- <script src="assets/js/common.js"></script> -->
+<script src="assets/js/common.js"></script>
 <script src="assets/js/load.js"></script>
 <script src="assets/js/compare.js"></script>
+<script src="assets/js/add.js"></script>
 
 
 <!-- =========================================================

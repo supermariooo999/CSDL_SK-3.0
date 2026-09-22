@@ -1,3 +1,8 @@
+window.danhMuc = {
+    nam: [],
+    linh_vuc: []
+};
+
 // Wrapper fetch JSON
 window.api = async function (url, opts = {}) {
   const res = await fetch(url, {
@@ -48,6 +53,8 @@ let sangKienList = [];
 
 async function loadDanhMuc() {
   const dm = await api('../api/danh-muc-list.php');
+  
+  window.danhMuc = dm;
 
   const selNam = document.getElementById('filterNam');
 
@@ -214,3 +221,4 @@ async function loadSangKien() {
     }
   }
 }
+
