@@ -6,7 +6,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>Kiểm tra trùng sáng kiến</title>
+<title>QLSK</title>
 
 <!-- Bootstrap 5.3.3 - Cloudflare CDN -->
 <link rel="stylesheet"
@@ -232,22 +232,27 @@
              TABLE
         ================================================== -->
 
-        <table id="ideaTable" class="table idea-table align-middle" style="width:100%">
-            <thead>
-                <tr>
-                    <th style="width:50px" class="text-center">
-                        <input type="checkbox" id="checkAllIdeas" class="idea-check">
-                    </th>
-                    <th style="width:130px">Mã sáng kiến</th>
-                    <th>Tên sáng kiến</th>
-                    <th style="width:180px">Lĩnh vực</th>
-                    <th style="width:100px">Năm</th>
-                    <th style="width:130px">Trạng thái</th>
-                    <th style="width:110px" class="text-center">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody id="ideaTableBody"></tbody>
-        </table>
+        <div class="table-responsive">
+            <table id="ideaTable"
+                class="table idea-table align-middle"
+                style="width:100%">
+                <thead>
+                    <tr>
+                        <th style="width:50px" class="text-center">
+                            <input type="checkbox" id="checkAllIdeas" class="idea-check">
+                        </th>
+                        <th style="width:130px">Mã sáng kiến</th>
+                        <th>Tên sáng kiến</th>
+                        <th style="width:180px">Lĩnh vực</th>
+                        <th style="width:100px">Năm</th>
+                        <th style="width:130px">Trạng thái</th>
+                        <th style="width:110px" class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+
+                <tbody id="ideaTableBody"></tbody>
+            </table>
+        </div>
 
 
         <!-- =================================================
@@ -796,10 +801,10 @@
                                        class="form-control"
                                        name="file_mau_01"
                                        id="file_mau_01"
-                                       accept=".doc,.docx">
+                                       accept=".docx">
 
                                 <div class="form-text">
-                                    Chỉ nhận file DOC, DOCX. Tối đa 20MB.
+                                    Chỉ nhận file DOCX. Tối đa 20MB.
                                 </div>
 
                                 <div id="existingFileMau01"
@@ -829,10 +834,10 @@
                                        class="form-control"
                                        name="file_mau_05"
                                        id="file_mau_05"
-                                       accept=".doc,.docx">
+                                       accept=".docx">
 
                                 <div class="form-text">
-                                    Chỉ nhận file DOC, DOCX. Tối đa 20MB.
+                                    Chỉ nhận file DOCX. Tối đa 20MB.
                                 </div>
 
                                 <div id="existingFileMau05"
@@ -863,10 +868,10 @@
                                        class="form-control"
                                        name="file_mau_06"
                                        id="file_mau_06"
-                                       accept=".doc,.docx">
+                                       accept=".docx">
 
                                 <div class="form-text">
-                                    Chỉ nhận file DOC, DOCX. Tối đa 20MB.
+                                    Chỉ nhận file DOCX. Tối đa 20MB.
                                 </div>
 
                                 <div id="existingFileMau06"
@@ -900,7 +905,7 @@
                                        name="files_minh_chung[]"
                                        id="files_minh_chung"
                                        multiple
-                                       accept=".doc,.docx,.pdf,.jpg,.jpeg,.png,.xls,.xlsx">
+                                       accept=".docx,.pdf,.jpg,.jpeg,.png,.xls,.xlsx">
 
                                 <div class="form-text">
                                     Có thể chọn nhiều file.

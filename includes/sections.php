@@ -230,7 +230,7 @@ function split_sang_kien_sections(string $text): array
          * =====================================================
          */
         if (
-            str_starts_with($asciiLine, 'a.') &&
+            preg_match('/^a[.)]\s*/i', $asciiLine) &&
             str_contains($asciiLine, 'khai quat dac diem') &&
             str_contains($asciiLine, 'truoc khi co sang kien')
         ) {
@@ -250,7 +250,7 @@ function split_sang_kien_sections(string $text): array
          * =====================================================
          */
         if (
-            str_starts_with($asciiLine, 'b.') &&
+            preg_match('/^b[.)]\s*/i', $asciiLine) &&
             str_contains($asciiLine, 'noi dung sang kien')
         ) {
             $flush();
@@ -272,7 +272,7 @@ function split_sang_kien_sections(string $text): array
          * =====================================================
          */
         if (
-            str_starts_with($asciiLine, 'c.') &&
+            preg_match('/^c[.)]\s*/i', $asciiLine) &&
             (
                 str_contains($asciiLine, 'hieu qua') ||
                 str_contains($asciiLine, 'pham vi')
@@ -301,12 +301,12 @@ function split_sang_kien_sections(string $text): array
          */
         if (
             (
-                str_starts_with($asciiLine, '5.') &&
+                preg_match('/^5[.)]\s*/i', $asciiLine) &&
                 str_contains($asciiLine, 'hoi dong')
             )
             ||
             (
-                str_starts_with($asciiLine, '6.') &&
+                preg_match('/^6[.)]\s*/i', $asciiLine) &&
                 str_contains($asciiLine, 'thoi gian')
             )
         ) {

@@ -78,6 +78,26 @@ try {
     }
 
     // =====================================================
+    // 2.1. KIỂM TRA TRÙNG MÃ TRONG CÙNG NĂM
+    // =====================================================
+    $duplicate = DB::one(
+        "SELECT id
+        FROM qlsk_sang_kien
+        WHERE nam_id = ?
+        AND ma = ?
+        AND id <> ?
+        LIMIT 1",
+        [$yearId, $code, $id]
+    );
+
+    if ($duplicate) {
+        json_error(
+            'Mã sáng kiến "' . $code . '" đã tồn tại trong năm được chọn.',
+            422
+        );
+    }
+
+    // =====================================================
     // 4. XỬ LÝ TRANSACTION
     // =====================================================
 
@@ -314,6 +334,12 @@ function processUploadedFiles(PDO $pdo, int $initiativeId): void
         'file_mau_06' => 'MAU_06',
     ];
 
+    $mapFileName = [
+        'file_mau_01' => 'Mẫu số 01/SK',
+        'file_mau_05' => 'Mẫu số 05/SK',
+        'file_mau_06' => 'Mẫu số 06/SK',
+    ];
+
     // ---------- SINGLE FILES ----------
 
     foreach ($singleFields as $field => $loaiFile) {
@@ -324,17 +350,17 @@ function processUploadedFiles(PDO $pdo, int $initiativeId): void
         if ($f['error'] === UPLOAD_ERR_NO_FILE) continue;
 
         if ($f['error'] !== UPLOAD_ERR_OK) {
-            throw new RuntimeException("Lỗi upload file $field (code {$f['error']}).");
+            throw new RuntimeException("Lỗi upload file $mapFileName[$field] (code {$f['error']}).");
         }
 
         if ($f['size'] > $maxSize) {
-            throw new RuntimeException("File $field vượt quá 20MB.");
+            throw new RuntimeException("File $mapFileName[$field] vượt quá 20MB.");
         }
 
         $ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
 
-        if (!in_array($ext, ['doc', 'docx'], true)) {
-            throw new RuntimeException("File $field chỉ nhận DOC/DOCX.");
+        if (!in_array($ext, ['docx'], true)) {
+            throw new RuntimeException("File $mapFileName[$field] chỉ nhận DOCX.");
         }
 
         saveUploadedFile(

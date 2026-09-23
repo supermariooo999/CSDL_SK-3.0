@@ -10,7 +10,7 @@ class KiemTraTrungService
     public function __construct() { $this->sim = new SangKienSimilarity(); }
 
     /** Check 1 sáng kiến với toàn bộ trong năm */
-    public function checkOne(int $id, ?int $linhVucId = null, float $minScore = 40.0): array {
+    public function checkOne(int $id, ?int $linhVucId = null, float $minScore = 30.0): array {
         $sk = DB::one(
             "SELECT 
                 sk.id,

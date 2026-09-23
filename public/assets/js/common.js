@@ -155,6 +155,7 @@ function initDataTable() {
 
     ideaDataTable = $(table).DataTable({
         // ---------- NGÔN NGỮ ----------
+        autoWidth: false,
         language: {
             search:        'Tìm nhanh:',
             lengthMenu:    'Hiển thị _MENU_ dòng',
@@ -177,12 +178,37 @@ function initDataTable() {
             [5, 10, 20, 50, 100, -1],
             [5, 10, 20, 50, 100, 'Tất cả'],
         ],
-        order: [[1, 'desc']],   // sort theo mã sáng kiến giảm dần
+        order: [[1, 'asc']],   // sort theo mã sáng kiến giảm dần
         columnDefs: [
             // Cột 0 (checkbox) + cột 6 (thao tác) không sort
             { orderable: false, targets: [0, 6] },
+            // Cột 1: sort theo số cuối của mã
+            {
+                targets: 1, // cột Mã sáng kiến
+                className: 'text-start',
+                render: function (data, type) {
+                    const text = $('<div>').html(data).text().trim();
+
+                    if (type === 'sort' || type === 'type') {
+                        const match = text.match(/(\d{3})$/);
+                        return match ? parseInt(match[1], 10) : 0;
+                    }
+
+                    return data;
+                }
+            },
             // Cột 4 (năm) sort theo số
-            { type: 'num', targets: [4] },
+            { type: 'num', targets: [4], className: 'text-center' },
+            { targets: [5], className: 'text-center' },
+           
+            // Chiều rộng theo %
+            { width: '5%',  targets: 0 },
+            { width: '10%', targets: 1 },
+            { width: '35%', targets: 2 },
+            { width: '15%', targets: 3 },
+            { width: '10%', targets: 4 },
+            { width: '15%', targets: 5 },
+            { width: '10%', targets: 6 },
         ],
 
         // ---------- DOM ----------

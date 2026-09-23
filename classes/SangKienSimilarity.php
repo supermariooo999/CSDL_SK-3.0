@@ -407,7 +407,7 @@ class SangKienSimilarity
 
         $skA = $this->getSangKienCached($idA);
         $skB = $this->getSangKienCached($idB);
-
+        
 
         /*
          * ==========================
