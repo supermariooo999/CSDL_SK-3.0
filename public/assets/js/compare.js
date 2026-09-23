@@ -668,7 +668,7 @@ function renderBatchResult(data) {
                 ? `
                   <span class="duplicate-meta-badge">
                     <i class="bi bi-calendar3"></i>
-                    Năm ID: ${escapeHtml(sk.nam_id)}
+                    Năm: ${escapeHtml(sk.nam ?? sk.nam_id)}
                   </span>
                 `
                 : ''
@@ -805,8 +805,8 @@ function renderBatchResult(data) {
                     ? `
                       <span>
                         <i class="bi bi-calendar3"></i>
-                        Năm ID:
-                        ${escapeHtml(other.nam_id)}
+                        Năm:
+                        ${escapeHtml(other.nam ?? other.nam_id)}
                       </span>
                     `
                     : ''

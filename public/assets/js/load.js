@@ -3,15 +3,37 @@ window.danhMuc = {
     linh_vuc: []
 };
 
+let sangKienList = [];
+window.getSangKienList = () => sangKienList;
+
 // Wrapper fetch JSON
 window.api = async function (url, opts = {}) {
+  const isFormData = opts.body instanceof FormData;
+
+  const headers = isFormData
+    ? { ...(opts.headers || {}) }                       // browser tự set boundary
+    : { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+
+  const body = opts.body
+    ? (isFormData ? opts.body : JSON.stringify(opts.body))
+    : undefined;
+
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
+    method: opts.method || 'GET',
     ...opts,
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
+    headers,
+    body,
   });
-  const data = await res.json().catch(() => ({ success: false, error: 'Bad JSON' }));
-  if (!data.success) throw new Error(data.error || `HTTP ${res.status}`);
+
+  const data = await res.json().catch(() => ({
+    success: false,
+    error: 'Bad JSON',
+  }));
+
+  if (!data.success) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+
   return data.data;
 };
 
@@ -44,8 +66,6 @@ window.highlightCommon = function (text, other) {
   }
   return html;
 };
-
-let sangKienList = [];
 
 // =====================================================
 // LOAD DANH MỤC
@@ -85,140 +105,46 @@ async function loadDanhMuc() {
 
 async function loadSangKien() {
 
-  const tbody = document.getElementById('ideaTableBody');
-  const resultBox = document.getElementById('resultBox');
-  const alertBox = document.getElementById('alertBox');
+    const resultBox = document.getElementById('resultBox');
+    const alertBox  = document.getElementById('alertBox');
 
-  try {
+    try {
+        const nam = document.getElementById('filterNam')?.value || 0;
+        const lv  = document.getElementById('filterLinhVuc')?.value || 0;
+        const q   = document.getElementById('searchQ')?.value.trim() || '';
 
-    const nam =
-      document.getElementById('filterNam').value || 0;
+        const url =
+            `../api/sang-kien-list.php` +
+            `?nam_id=${encodeURIComponent(nam)}` +
+            `&linh_vuc_id=${encodeURIComponent(lv)}` +
+            `&q=${encodeURIComponent(q)}`;
 
-    const lv =
-      document.getElementById('filterLinhVuc').value || 0;
+        const data = await api(url);
 
-    const q =
-      document.getElementById('searchQ').value.trim();
+        // API có thể trả array hoặc { items, meta }
+        const items = Array.isArray(data)
+            ? data
+            : (data?.items || []);
 
-    const url =
-      `../api/sang-kien-list.php` +
-      `?nam_id=${encodeURIComponent(nam)}` +
-      `&linh_vuc_id=${encodeURIComponent(lv)}` +
-      `&q=${encodeURIComponent(q)}`;
+        window.renderIdeaTable(items);
+        window.resetSelection?.();
 
-    // api() đã trả về data.data
-    const data = await api(url);
+        if (resultBox) resultBox.innerHTML = '';
+        if (alertBox)  alertBox.innerHTML  = '';
 
-    sangKienList = Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error('loadSangKien:', error);
+        window.renderIdeaTable?.([]);
 
-    if (!sangKienList.length) {
-
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6" class="empty-table">
-            <i class="bi bi-inbox"></i>
-            <div>Không tìm thấy sáng kiến nào.</div>
-          </td>
-        </tr>
-      `;
-
-      resetSelection();
-      return;
+        if (alertBox) {
+            alertBox.innerHTML = `
+                <div class="alert alert-danger border-0 shadow-sm">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    Lỗi khi tải danh sách: ${escapeHtml(error.message)}
+                </div>
+            `;
+        }
     }
-
-    tbody.innerHTML = sangKienList.map(s => `
-      <tr>
-
-        <td class="text-center">
-          <input
-            type="checkbox"
-            class="idea-check idea-check-item"
-            value="${escapeHtml(String(s.id ?? ''))}"
-          >
-        </td>
-
-        <td>
-          <span class="idea-code">
-            ${escapeHtml(String(s.ma ?? ''))}
-          </span>
-        </td>
-
-        <td>
-          <div class="idea-name">
-            ${escapeHtml(String(s.ten ?? ''))}
-          </div>
-        </td>
-
-        <td>
-          <span class="idea-field">
-            ${escapeHtml(String(s.ten_linh_vuc ?? ''))}
-          </span>
-        </td>
-
-        <td>
-          <span class="idea-year">
-            ${escapeHtml(String(s.nam ?? ''))}
-          </span>
-        </td>
-
-        <td>
-          <span class="status-badge">
-            Có dữ liệu
-          </span>
-        </td>
-
-      </tr>
-    `).join('');
-
-    resetSelection();
-
-    if (resultBox) {
-      resultBox.innerHTML = '';
-    }
-
-    if (alertBox) {
-      alertBox.innerHTML = '';
-    }
-
-  } catch (error) {
-
-    console.error('loadSangKien:', error);
-
-    sangKienList = [];
-
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" class="empty-table">
-
-          <i class="bi bi-exclamation-triangle text-danger"></i>
-
-          <div class="text-danger fw-semibold">
-            Không thể tải danh sách sáng kiến.
-          </div>
-
-          <small class="text-muted">
-            ${escapeHtml(error.message || '')}
-          </small>
-
-        </td>
-      </tr>
-    `;
-
-    if (alertBox) {
-      alertBox.innerHTML = `
-        <div class="alert alert-danger border-0 shadow-sm">
-
-          <i class="bi bi-exclamation-circle me-2"></i>
-
-          Lỗi khi tải danh sách sáng kiến:
-
-          <strong>
-            ${escapeHtml(error.message || 'Không xác định')}
-          </strong>
-
-        </div>
-      `;
-    }
-  }
 }
 
+window.loadSangKien = loadSangKien;

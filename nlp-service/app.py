@@ -27,7 +27,7 @@ def normalize(t: str) -> str:
 
 def split_sentences(text: str) -> List[str]:
     parts = re.split(r"(?<=[.!?…])\s+|\n{2,}", text or "")
-    return [p.strip() for p in parts if len(p.strip()) >= 20]
+    return [p.strip() for p in parts if len(p.strip()) >= 10]
 
 
 def jaccard(a: str, b: str) -> float:
@@ -85,7 +85,9 @@ def compare(req: CompareReq):
 @app.post("/compare-sections")
 def compare_sections(req: SectionsReq):
     out = {}
-    for key in req.sections_a.keys():
+    all_keys = set(req.sections_a.keys()) | set(req.sections_b.keys())
+
+    for key in all_keys:
         a = (req.sections_a.get(key) or "").strip()
         b = (req.sections_b.get(key) or "").strip()
 
@@ -93,12 +95,10 @@ def compare_sections(req: SectionsReq):
             out[key] = {"score": 0.0, "pairs": []}
             continue
 
-        # Điểm cấp phần
         e_part = cosine_pair(a, b)
         t_part = tfidf_cos(a, b)
         section_score = 0.75 * e_part + 0.25 * t_part
 
-        # Cặp câu giống nhất
         sents_a = split_sentences(a)
         sents_b = split_sentences(b)
         pairs = []
@@ -106,7 +106,7 @@ def compare_sections(req: SectionsReq):
         if sents_a and sents_b:
             emb_a = model.encode(sents_a, normalize_embeddings=True, batch_size=32)
             emb_b = model.encode(sents_b, normalize_embeddings=True, batch_size=32)
-            sim = emb_a @ emb_b.T  # ma trận (len_a x len_b)
+            sim = emb_a @ emb_b.T
 
             used = set()
             for i, sa in enumerate(sents_a):

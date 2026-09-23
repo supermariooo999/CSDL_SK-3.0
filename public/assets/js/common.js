@@ -1,438 +1,368 @@
-const tableBody = document.getElementById('ideaTableBody');
 
-const selectedCount =
-    document.getElementById('selectedCount');
+const STATUS_MAP = {
+    DA_NOP:    { label: 'Đã nộp',    cls: 'status-submitted'  },
+    DANG_CHAM: { label: 'Đang chấm', cls: 'status-reviewing'  },
+    DA_CHAM:   { label: 'Đã chấm',   cls: 'status-reviewed'   },
+};
+const LOAI_MAP = {
+    NOI_BO:   { label: 'Nội bộ',     cls: 'loai-noi-bo'   },
+    KHAC_CQT: { label: 'Khác CQT',   cls: 'loai-khac-cqt' },
+};
 
-const checkAll =
-    document.getElementById('checkAllIdeas');
+// =====================================================
+// DATATABLES INSTANCE
+// =====================================================
 
-const clearButton =
-    document.getElementById('btnClearSelection');
-
-const compareButton =
-    document.getElementById('btnCompareSelected');
+let ideaDataTable = null;
 
 
-/*
-  * Cập nhật số lượng đã chọn
-  */
+document.addEventListener('DOMContentLoaded', () => {
 
-function updateSelectedCount() {
+    const tableBody     = document.getElementById('ideaTableBody');
+    const selectedCount = document.getElementById('selectedCount');
+    const checkAll      = document.getElementById('checkAllIdeas');
+    const clearButton   = document.getElementById('btnClearSelection');
 
-    const checked =
-        document.querySelectorAll(
-            '.idea-check-item:checked'
+    // =====================================================
+    // CẬP NHẬT SỐ LƯỢNG ĐÃ CHỌN
+    // =====================================================
+
+    function updateSelectedCount() {
+
+        if (!selectedCount) return;
+
+        // Chỉ đếm checkbox đang visible (DataTables ẩn row khác)
+        const visibleCheckboxes = document.querySelectorAll(
+            '#ideaTableBody .idea-check-item'
         );
 
-    selectedCount.textContent = checked.length;
+        let checkedCount = 0;
 
-    /*
-      * Highlight dòng được chọn
-      */
+        for (const cb of visibleCheckboxes) {
+            const row = cb.closest('tr');
+            if (!row) continue;
 
-    document.querySelectorAll('.idea-check-item')
-        .forEach(function (checkbox) {
-
-            const row = checkbox.closest('tr');
-
-            if (!row) return;
-
-            if (checkbox.checked) {
+            if (cb.checked) {
+                checkedCount++;
                 row.classList.add('selected');
             } else {
                 row.classList.remove('selected');
             }
+        }
 
-        });
+        selectedCount.textContent = checkedCount;
 
+        if (!checkAll) return;
 
-    /*
-      * Cập nhật checkbox "chọn tất cả"
-      */
+        if (visibleCheckboxes.length === 0) {
+            checkAll.checked = false;
+            checkAll.indeterminate = false;
+            return;
+        }
 
-    const all =
-        document.querySelectorAll('.idea-check-item');
-
-    if (all.length === 0) {
-
-        checkAll.checked = false;
-        checkAll.indeterminate = false;
-
-        return;
+        checkAll.checked = checkedCount === visibleCheckboxes.length;
+        checkAll.indeterminate = checkedCount > 0 && checkedCount < visibleCheckboxes.length;
     }
 
-    const checkedCount =
-        document.querySelectorAll(
-            '.idea-check-item:checked'
-        ).length;
+    window.updateSelectedCount = updateSelectedCount;
 
-    checkAll.checked =
-        checkedCount === all.length;
+    // =====================================================
+    // CHECKBOX TỪNG DÒNG
+    // =====================================================
 
-    checkAll.indeterminate =
-        checkedCount > 0 &&
-        checkedCount < all.length;
+    tableBody?.addEventListener('change', function (e) {
+        if (e.target.classList.contains('idea-check-item')) {
+            updateSelectedCount();
+        }
+    });
 
+    // =====================================================
+    // CHỌN TẤT CẢ
+    // =====================================================
+
+    checkAll?.addEventListener('change', function () {
+        // Chỉ chọn các checkbox đang visible trong table hiện tại
+        document.querySelectorAll('#ideaTableBody .idea-check-item')
+            .forEach(cb => { cb.checked = checkAll.checked; });
+
+        updateSelectedCount();
+    });
+
+    // =====================================================
+    // BỎ CHỌN TẤT CẢ
+    // =====================================================
+
+    clearButton?.addEventListener('click', function () {
+        document.querySelectorAll('.idea-check-item')
+            .forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+
+        if (checkAll) {
+            checkAll.checked = false;
+            checkAll.indeterminate = false;
+        }
+
+        updateSelectedCount();
+    });
+
+    // =====================================================
+    // ACTION DELEGATION (edit / delete)
+    // =====================================================
+
+    tableBody?.addEventListener('click', function (e) {
+        
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+
+        const tr = btn.closest('tr');
+        if (!tr) return;
+
+        const id   = Number(tr.dataset.id);
+        const code = tr.querySelector('.idea-code')?.textContent?.trim() || '';
+
+        if (!id) return;
+
+        switch (btn.dataset.action) {
+
+            case 'edit':
+                window.editInitiative?.(id);
+                break;
+
+            case 'delete':
+                window.deleteInitiative?.(id, code);
+                break;
+        }
+    });
+
+    initDataTable();
+
+});
+
+// =====================================================
+// KHỞI TẠO DATATABLES
+// =====================================================
+
+function initDataTable() {
+
+    const table = document.getElementById('ideaTable');
+    if (!table || !window.jQuery) return;
+
+    // Xoá data cũ + destroy nếu có
+    if ($.fn.DataTable.isDataTable(table)) {
+        $(table).DataTable().destroy();
+    }
+
+    ideaDataTable = $(table).DataTable({
+        // ---------- NGÔN NGỮ ----------
+        language: {
+            search:        'Tìm nhanh:',
+            lengthMenu:    'Hiển thị _MENU_ dòng',
+            info:          'Trang _PAGE_ / _PAGES_ — Tổng _TOTAL_ sáng kiến',
+            infoEmpty:     'Không có dữ liệu',
+            infoFiltered:  '(lọc từ _MAX_ sáng kiến)',
+            zeroRecords:   'Không tìm thấy sáng kiến nào',
+            emptyTable:    'Chưa có sáng kiến',
+            paginate: {
+                first:    '«',
+                previous: '‹',
+                next:     '›',
+                last:     '»',
+            },
+        },
+
+        // ---------- LAYOUT ----------
+        pageLength: 5,
+        lengthMenu: [
+            [5, 10, 20, 50, 100, -1],
+            [5, 10, 20, 50, 100, 'Tất cả'],
+        ],
+        order: [[1, 'desc']],   // sort theo mã sáng kiến giảm dần
+        columnDefs: [
+            // Cột 0 (checkbox) + cột 6 (thao tác) không sort
+            { orderable: false, targets: [0, 6] },
+            // Cột 4 (năm) sort theo số
+            { type: 'num', targets: [4] },
+        ],
+
+        // ---------- DOM ----------
+        // Bỏ filter/search mặc định vì đã có filter ngoài
+        // dom: 'lrtip' — chỉ giữ length, table, info, pagination
+        // (bỏ 'f' = filter, 's' = search box)
+        dom:
+            "<'row mb-2'<'col-sm-6'l><'col-sm-6'>>" +
+            "<'row'<'col-12'tr>>" +
+            "<'row mt-3'<'col-sm-5'i><'col-sm-7'p>>",
+
+        // ---------- KHÔNG XÓA DOM ----------
+        // Giữ nguyên HTML do mình render → event delegation vẫn chạy
+        destroy: true,
+
+        createdRow: function (row, data, dataIndex) {
+            // data là mảng cell bạn add vào
+            // Không có id ở đây → lấy từ checkbox bên trong
+            const cb = row.querySelector('.idea-check-item');
+            if (cb) {
+                row.dataset.id = cb.value;
+            }
+        },
+    });
+
+    // =====================================================
+    // RE-BIND EVENT SAU KHI DATATABLES REDRAW
+    // =====================================================
+    // DataTables di chuyển DOM → phải bind lại 1 số thứ
+
+    ideaDataTable.on('draw', () => {
+        // Cập nhật counter "đã chọn" sau khi page đổi
+        window.updateSelectedCount?.();
+    });
 }
 
 
-/*
-  * Checkbox từng dòng
-  */
-
-tableBody.addEventListener('change', function (e) {
-
-    if (
-        e.target.classList.contains(
-            'idea-check-item'
-        )
-    ) {
-
-        updateSelectedCount();
-
-    }
-
-});
-
-
-/*
-  * Chọn tất cả
-  */
-
-checkAll.addEventListener('change', function () {
-
-    const checked =
-        document.querySelectorAll(
-            '.idea-check-item'
-        );
-
-    checked.forEach(function (checkbox) {
-
-        checkbox.checked =
-            checkAll.checked;
-
-    });
-
-    updateSelectedCount();
-
-});
-
-
-/*
-  * Bỏ chọn tất cả
-  */
-
-clearButton.addEventListener('click', function () {
-
-    document.querySelectorAll(
-        '.idea-check-item'
-    ).forEach(function (checkbox) {
-
-        checkbox.checked = false;
-
-    });
-
-    checkAll.checked = false;
-    checkAll.indeterminate = false;
-
-    updateSelectedCount();
-
-});
-
-
-/*
-  * Kiểm tra các sáng kiến được chọn
-  */
-
-compareButton.addEventListener('click', function () {
-
-    const selected =
-        Array.from(
-            document.querySelectorAll(
-                '.idea-check-item:checked'
-            )
-        ).map(function (checkbox) {
-
-            return checkbox.value;
-
-        });
-
-
-    if (selected.length < 2) {
-
-        alertBox.innerHTML = `
-            <div class="alert alert-warning border-0 shadow-sm">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                Vui lòng chọn ít nhất <strong>2 sáng kiến</strong>
-                để kiểm tra.
-            </div>
-        `;
-
-        return;
-
-    }
-
-
-    /*
-      * Nếu compare.js có hàm xử lý riêng,
-      * có thể gọi tại đây.
-      *
-      * Ví dụ:
-      *
-      * compareSelectedIdeas(selected);
-      */
-
-    console.log(
-        'Các sáng kiến được chọn:',
-        selected
-    );
-
-
-    /*
-      * Tạm thời hiển thị danh sách ID đã chọn.
-      * Sau này kết nối API NLP ở đây.
-      */
-
-    alertBox.innerHTML = `
-        <div class="alert alert-info border-0 shadow-sm">
-            <i class="bi bi-cpu me-2"></i>
-            Đang chuẩn bị kiểm tra
-            <strong>${selected.length}</strong>
-            sáng kiến...
-        </div>
-    `;
-
-});
-
-
-/*
-  * Hàm này dùng để JS load danh sách.
-  *
-  * Khi API trả về danh sách sáng kiến,
-  * chỉ cần gọi:
-  *
-  * renderIdeaTable(data);
-  */
+// =====================================================
+// RENDER BẢNG (gọi từ load.js)
+// =====================================================
 
 window.renderIdeaTable = function (ideas) {
 
-    tableBody.innerHTML = '';
-
-
-    if (!ideas || ideas.length === 0) {
-
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="6" class="empty-table">
-                    <i class="bi bi-inbox"></i>
-                    <div>
-                        Không tìm thấy sáng kiến nào.
-                    </div>
-                </td>
-            </tr>
-        `;
-
-        updateSelectedCount();
-
+    if (!ideaDataTable) {
+        // Fallback nếu DataTables chưa init
+        console.warn('DataTable chưa init, bỏ qua render');
         return;
     }
 
+    // Xoá sạch data cũ
+    ideaDataTable.clear();
 
-    ideas.forEach(function (idea) {
+    if (!ideas || ideas.length === 0) {
+        ideaDataTable.draw();
+        window.updateSelectedCount?.();
+        return;
+    }
 
-        const tr =
-            document.createElement('tr');
+    // Helper pick
+    const pick = (obj, keys, fallback = '') => {
+        for (const k of keys) {
+            if (obj[k] !== undefined && obj[k] !== null) return obj[k];
+        }
+        return fallback;
+    };
 
+    // Build mảng row HTML (DataTables nhận mảng array)
+    const rows = ideas.map(idea => {
 
-        /*
-          * Hỗ trợ nhiều tên field
-          * để dễ ghép với API hiện tại
-          */
+        const id     = pick(idea, ['id', 'ID', 'id_sang_kien']);
+        const code   = pick(idea, ['ma', 'ma_sang_kien', 'code'], id);
+        const name   = pick(idea, ['ten', 'ten_sang_kien', 'name']);
+        const field  = pick(idea, ['linh_vuc', 'ten_linh_vuc', 'field']);
+        const year   = pick(idea, ['nam', 'nam_sang_kien', 'year']);
+        const statusRaw = pick(idea, ['trang_thai', 'status']);
 
-        const id =
-            idea.id ??
-            idea.ID ??
-            idea.id_sang_kien ??
-            '';
+        const statusMeta = STATUS_MAP[statusRaw] || {
+            label: statusRaw || '—',
+            cls: ''
+        };
 
+        const idStr     = escapeHtml(String(id));
+        const codeStr   = escapeHtml(String(code));
+        const nameStr   = escapeHtml(String(name));
+        const fieldStr  = escapeHtml(String(field));
+        const yearStr   = escapeHtml(String(year));
+        const statusStr = escapeHtml(statusMeta.label);
 
-        const code =
-            idea.ma ??
-            idea.ma_sang_kien ??
-            idea.code ??
-            id;
-
-
-        const name =
-            idea.ten ??
-            idea.ten_sang_kien ??
-            idea.name ??
-            '';
-
-
-        const field =
-            idea.linh_vuc ??
-            idea.ten_linh_vuc ??
-            idea.field ??
-            '';
-
-
-        const year =
-            idea.nam ??
-            idea.nam_sang_kien ??
-            idea.year ??
-            '';
-
-
-        const status =
-            idea.trang_thai ??
-            idea.status ??
-            '';
-
-
-        tr.innerHTML = `
-
-            <td class="text-center">
-
+        return [
+            // [0] checkbox
+            `<div class="text-center">
                 <input
                     type="checkbox"
                     class="idea-check idea-check-item"
-                    value="${escapeHtml(String(id))}"
+                    value="${idStr}"
                 >
+            </div>`,
 
-            </td>
+            // [1] mã
+            `<span class="idea-code">${codeStr}</span>`,
 
+            // [2] tên
+            `<div class="idea-name">${nameStr}</div>`,
 
-            <td>
+            // [3] lĩnh vực
+            `<span class="idea-field">${fieldStr}</span>`,
 
-                <span class="idea-code">
-                    ${escapeHtml(String(code))}
-                </span>
+            // [4] năm
+            `<span class="idea-year">${yearStr}</span>`,
 
-            </td>
+            // [5] trạng thái
+            `<span class="status-badge ${statusMeta.cls}">${statusStr}</span>`,
 
-
-            <td>
-
-                <div class="idea-name">
-                    ${escapeHtml(String(name))}
-                </div>
-
-            </td>
-
-
-            <td>
-
-                <span class="idea-field">
-                    ${escapeHtml(String(field))}
-                </span>
-
-            </td>
-
-
-            <td>
-
-                <span class="idea-year">
-                    ${escapeHtml(String(year))}
-                </span>
-
-            </td>
-
-
-            <td>
-
-                <span class="status-badge">
-                    ${escapeHtml(String(status))}
-                </span>
-
-            </td>
-
-        `;
-
-
-        tableBody.appendChild(tr);
-
+            // [6] thao tác
+            `<div class="text-center">
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    data-action="delete"
+                    title="Xoá"
+                ><i class="bi bi-trash"></i></button>
+            </div>`,
+        ];
     });
 
+    // Thêm data + redraw
+    ideaDataTable.rows.add(rows).draw(false);
 
-    updateSelectedCount();
-
+    // Cập nhật counter
+    window.updateSelectedCount?.();
 };
+
+// =====================================================
+// RESET SELECTION
+// =====================================================
 
 function resetSelection() {
 
-  document
-    .querySelectorAll('.idea-check-item')
-    .forEach(cb => {
-      cb.checked = false;
-    });
+    document.querySelectorAll('.idea-check-item')
+        .forEach(cb => { cb.checked = false; });
 
+    const checkAll = document.getElementById('checkAllIdeas');
+    if (checkAll) {
+        checkAll.checked = false;
+        checkAll.indeterminate = false;
+    }
 
-  const checkAll =
-    document.getElementById('checkAllIdeas');
-
-  if (checkAll) {
-    checkAll.checked = false;
-    checkAll.indeterminate = false;
-  }
-
-
-  const count =
-    document.getElementById('selectedCount');
-
-  if (count) {
-    count.textContent = '0';
-  }
-
+    const count = document.getElementById('selectedCount');
+    if (count) count.textContent = '0';
 }
 
-
-/*
-  * Escape HTML
-  */
-
-function escapeHtml(value) {
-
-    return value
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-
-}
+window.resetSelection = resetSelection;
 
 
-/*
-  * Cho phép JS bên ngoài lấy danh sách
-  * ID sáng kiến đang được chọn
-  */
+// =====================================================
+// GET SELECTED IDEAS
+// =====================================================
 
 window.getSelectedIdeas = function () {
-
     return Array.from(
-        document.querySelectorAll(
-            '.idea-check-item:checked'
-        )
-    ).map(function (checkbox) {
-
-        return checkbox.value;
-
-    });
-
+        document.querySelectorAll('#ideaTableBody .idea-check-item:checked')
+    ).map(cb => cb.value);
 };
 
+
+// =====================================================
+// TOAST
+// =====================================================
+
 function toast(title, icon = "info") {
+
     Swal.fire({
         icon: icon,
         title: title,
-
         toast: true,
         position: "top-end",
-
         showConfirmButton: false,
-
         timer: 2200,
         timerProgressBar: true
     });
 }
+
+window.toast = toast;

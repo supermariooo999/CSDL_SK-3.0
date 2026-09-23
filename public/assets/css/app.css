@@ -152,7 +152,7 @@ body {
     align-items: center;
     gap: 6px;
     background: #eff6ff;
-    color: #2563eb;
+    color: #2c2e31;
     padding: 7px 12px;
     border-radius: 20px;
     font-size: 13px;
@@ -278,22 +278,6 @@ body {
 }
 
 
-/* Empty */
-
-.empty-table {
-    padding: 50px 20px !important;
-    text-align: center;
-    color: #94a3b8;
-}
-
-.empty-table i {
-    font-size: 42px;
-    display: block;
-    margin-bottom: 10px;
-    color: #cbd5e1;
-}
-
-
 /* =========================================================
    ACTION BAR
 ========================================================= */
@@ -355,12 +339,141 @@ body {
         align-items: flex-start;
     }
 
-    .idea-table {
-        min-width: 850px;
+}
+
+/* =========================================================
+   DATATABLES OVERRIDE
+========================================================= */
+
+/* Wrapper */
+.dt-container {
+    padding: 16px 20px 20px;
+}
+
+.dataTables_wrapper {
+    padding: 16px 20px 20px;
+}
+
+/* Length dropdown */
+.dataTables_length select {
+    display: inline-block;
+    width: auto;
+    min-width: 80px;
+    margin: 0 6px;
+    border-radius: 8px;
+    border-color: #dbe1ea;
+}
+
+/* Info */
+.dataTables_info {
+    font-size: 13px;
+    color: #64748b;
+    padding-top: 8px !important;
+}
+
+/* Wrapper căn phải */
+.dt-paging {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    padding-top: 6px;
+    gap: 12px;
+}
+
+/* Nav bên trong chiếm đủ để UL đẩy sang phải */
+.dt-paging > nav {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+/* UL căn phải */
+.dt-paging .pagination {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 3px;                /* khoảng cách giữa các nút */
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.page-item .page-link {
+    border-radius: 8px !important;
+    margin: 0 2px;
+    border: 1px solid #dbe1ea;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 34px;
+    text-align: center;
+    padding: 6px 10px;
+}
+
+.page-item.active .page-link {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.page-item.disabled .page-link {
+    opacity: .4;
+}
+
+/* Sort icons */
+table.dataTable thead th {
+    position: relative;
+}
+
+table.dataTable thead .sorting:before,
+table.dataTable thead .sorting:after,
+table.dataTable thead .sorting_asc:before,
+table.dataTable thead .sorting_asc:after,
+table.dataTable thead .sorting_desc:before,
+table.dataTable thead .sorting_desc:after {
+    opacity: .35;
+}
+
+table.dataTable thead .sorting_asc:before,
+table.dataTable thead .sorting_desc:after {
+    opacity: .8;
+    color: #2563eb;
+}
+
+/* Table bên trong wrapper */
+#ideaTable {
+    margin: 0 !important;
+}
+
+table.table.dataTable>tbody>tr.selected>* {
+    box-shadow: inset 0 0 0 9999px rgb(255, 243, 250) !important;
+    box-shadow: inset 0 0 0 9999px rgb(255, 243, 250) !important;
+    color: rgb(255, 255, 255);
+    color: rgb(var(--dt-row-selected-text));
+}
+
+/* Mobile: DataTables responsive */
+@media (max-width: 768px) {
+
+    .dataTables_wrapper {
+        padding: 12px 14px;
     }
 
-    .table-responsive {
-        overflow-x: auto;
+    .dataTables_length,
+    .dataTables_filter {
+        text-align: left !important;
+        margin-bottom: 8px;
     }
 
+    .dataTables_info,
+    .dataTables_paginate {
+        text-align: center !important;
+        padding-top: 10px;
+    }
+
+    .dataTables_paginate .pagination {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
 }

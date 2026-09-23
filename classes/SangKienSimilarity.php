@@ -69,14 +69,18 @@ class SangKienSimilarity
         }
 
         $sk = DB::one(
-            "SELECT
-                id,
-                ma,
-                ten,
-                linh_vuc_id,
-                nam_id
-             FROM qlsk_sang_kien
-             WHERE id = ?",
+            "SELECT 
+                sk.id,
+                sk.ma,
+                sk.ten,
+                sk.nam_id,
+                sk.linh_vuc_id,
+                n.nam           AS nam,
+                lv.ten          AS ten_linh_vuc
+            FROM qlsk_sang_kien sk
+            LEFT JOIN qlsk_nam n        ON n.id = sk.nam_id
+            LEFT JOIN qlsk_linh_vuc lv  ON lv.id = sk.linh_vuc_id
+            WHERE sk.id = ?",
             [$id]
         );
 
@@ -459,17 +463,14 @@ class SangKienSimilarity
         $cacheKey = $minId . ':' . $maxId;
 
         if (isset($this->comparisonCache[$cacheKey])) {
-
             $cached = $this->comparisonCache[$cacheKey];
 
-            /*
-             * Đổi a/b lại cho đúng hướng
-             * mà caller yêu cầu.
-             */
+            // Trùng hướng
             if ($cached['a']['id'] === $idA) {
                 return $cached;
             }
 
+            // Đảo hướng → phải swap cả sections lẫn pairs
             $result = $cached;
 
             $result['a'] = $cached['b'];
@@ -477,6 +478,24 @@ class SangKienSimilarity
 
             $result['sections_a'] = $cached['sections_b'];
             $result['sections_b'] = $cached['sections_a'];
+
+            // ✅ Swap từng pair trong sections
+            $result['sections'] = [];
+            foreach ($cached['sections'] as $key => $section) {
+                $pairs = $section['pairs'] ?? [];
+                $swapped = array_map(static function ($p) {
+                    return [
+                        'a'     => $p['b'] ?? '',
+                        'b'     => $p['a'] ?? '',
+                        'score' => $p['score'] ?? 0,
+                    ];
+                }, $pairs);
+
+                $result['sections'][$key] = [
+                    'score' => $section['score'] ?? 0,
+                    'pairs' => $swapped,
+                ];
+            }
 
             return $result;
         }
@@ -490,7 +509,7 @@ class SangKienSimilarity
 
         $secA = $this->getSectionsCached($idA);
         $secB = $this->getSectionsCached($idB);
-
+    
 
         /*
          * ==========================

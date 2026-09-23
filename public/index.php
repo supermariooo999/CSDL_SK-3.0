@@ -20,6 +20,10 @@
 <link href="assets/css/add.css" rel="stylesheet">
 <link href="assets/css/modal.css" rel="stylesheet">
 
+<!-- DataTables 2.x -->
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css">
+
 <style>
 
 
@@ -228,75 +232,22 @@
              TABLE
         ================================================== -->
 
-        <div class="table-responsive">
-
-            <table class="table idea-table align-middle">
-
-                <thead>
-
-                    <tr>
-
-                        <th style="width:50px" class="text-center">
-
-                            <input
-                                type="checkbox"
-                                id="checkAllIdeas"
-                                class="idea-check"
-                                title="Chọn tất cả"
-                            >
-
-                        </th>
-
-                        <th style="width:130px">
-                            Mã sáng kiến
-                        </th>
-
-                        <th>
-                            Tên sáng kiến
-                        </th>
-
-                        <th style="width:180px">
-                            Lĩnh vực
-                        </th>
-
-                        <th style="width:100px">
-                            Năm
-                        </th>
-
-                        <th style="width:130px">
-                            Trạng thái
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody id="ideaTableBody">
-
-                    <!--
-                        JS sẽ load danh sách sáng kiến vào đây
-                    -->
-
-                    <tr>
-
-                        <td colspan="6" class="empty-table">
-
-                            <i class="bi bi-inbox"></i>
-
-                            <div>
-                                Đang tải danh sách sáng kiến...
-                            </div>
-
-                        </td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
-
-        </div>
+        <table id="ideaTable" class="table idea-table align-middle" style="width:100%">
+            <thead>
+                <tr>
+                    <th style="width:50px" class="text-center">
+                        <input type="checkbox" id="checkAllIdeas" class="idea-check">
+                    </th>
+                    <th style="width:130px">Mã sáng kiến</th>
+                    <th>Tên sáng kiến</th>
+                    <th style="width:180px">Lĩnh vực</th>
+                    <th style="width:100px">Năm</th>
+                    <th style="width:130px">Trạng thái</th>
+                    <th style="width:110px" class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="ideaTableBody"></tbody>
+        </table>
 
 
         <!-- =================================================
@@ -706,14 +657,13 @@
                             <div
                                 class="mb-3"
                                 id="otherCQTField"
-                                style="display: none;"
+                                style=""
                             >
                                 <label
                                     for="ten_co_quan_thue"
                                     class="form-label fw-semibold"
                                 >
                                     Tên Cơ quan Thuế
-                                    <span class="text-danger">*</span>
                                 </label>
 
                                 <input
@@ -1019,15 +969,21 @@
     src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.14.5/sweetalert2.all.min.js"
 ></script>
 
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
+
 
 <!-- =========================================================
      EXISTING JS
 ========================================================= -->
-
+<script src="assets/js/utils.js"></script>
 <script src="assets/js/common.js"></script>
 <script src="assets/js/load.js"></script>
 <script src="assets/js/compare.js"></script>
 <script src="assets/js/add.js"></script>
+<script src="assets/js/edit.js"></script>
+<script src="assets/js/delete.js"></script>
 
 
 <!-- =========================================================

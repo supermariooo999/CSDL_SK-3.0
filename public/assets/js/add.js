@@ -1,89 +1,133 @@
-console.log(danhMuc);
+// assets/js/add.js
 
-function openAddInitiativeModal() {
-    const form = document.getElementById('initiativeForm');
-    const modalEl = document.getElementById('initiativeModal');
+/* =====================================================
+   STATE
+===================================================== */
+
+let employees = [];
+let selectedAuthors = [];
+let currentStep = 1;
+let initiativeModal = null;
+
+
+/* =====================================================
+   INIT
+===================================================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const modalEl = document.getElementById("initiativeModal");
+    if (modalEl) {
+        initiativeModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        // Reset state khi modal đóng
+        modalEl.addEventListener("hidden.bs.modal", () => {
+            document
+                .querySelectorAll("#initiativeModal .step-item")
+                .forEach(el => el.classList.remove("active", "done"));
+
+            document
+                .querySelectorAll("#initiativeModal .form-step")
+                .forEach(el => el.classList.remove("active"));
+
+            currentStep = 1;
+        });
+    }
+
+    bindStepEvents();
+    bindFilePreview();
+    setStep(1);
+
+    // Delegation cho checkbox tác giả
+    document
+        .getElementById("employeeList")
+        ?.addEventListener("change", e => {
+            const cb = e.target.closest(".author-checkbox");
+            if (!cb) return;
+            handleAuthorChange(cb);
+        });
+
+    // Delegation cho nút xoá tác giả
+    document
+        .getElementById("selectedAuthors")
+        ?.addEventListener("click", e => {
+            const btn = e.target.closest("[data-remove-author]");
+            if (!btn) return;
+
+            const id = String(btn.dataset.removeAuthor);
+            selectedAuthors = selectedAuthors.filter(
+                aid => String(aid) !== id
+            );
+
+            renderEmployees();
+            renderSelectedAuthors();
+        });
+
+    // Filter tác giả
+    document
+        .getElementById("authorSearch")
+        ?.addEventListener("input", renderEmployees);
+
+    document
+        .getElementById("filterAuthorDepartment")
+        ?.addEventListener("change", renderEmployees);
+});
+
+
+/* =====================================================
+   OPEN MODAL — THÊM MỚI
+===================================================== */
+
+async function openAddInitiativeModal() {
+    const form = document.getElementById("initiativeForm");
+    const modalEl = document.getElementById("initiativeModal");
 
     if (!form || !modalEl) {
-        console.error('Không tìm thấy initiativeForm hoặc initiativeModal');
+        console.error("Không tìm thấy form hoặc modal");
         return;
     }
 
-    // Reset form
-    form.reset();
-
-    // Reset ID
-    const idInput = document.getElementById('initiativeId');
-    if (idInput) {
-        idInput.value = '';
+    // Load nhân viên lần đầu
+    if (!employees.length) {
+        await loadEmployees();
     }
 
-    // Tiêu đề modal
-    const title = document.getElementById('initiativeModalTitle');
-    if (title) {
-        title.textContent = 'Thêm sáng kiến';
-    }
+    // Reset toàn bộ state + UI
+    resetForm();
 
-    // Reset về bước 1
-    document.querySelectorAll('#initiativeModal .form-step')
-        .forEach(step => step.classList.remove('active'));
+    const title = document.getElementById("initiativeModalTitle");
+    if (title) title.textContent = "Thêm sáng kiến";
 
-    document.querySelector('#initiativeModal .form-step[data-step="1"]')
-        ?.classList.add('active');
+    // Nạp danh mục
+    fillCatalogSelects();
 
-    // Reset stepper
-    document.querySelectorAll('#initiativeModal .step-item')
-        .forEach(step => step.classList.remove('active'));
+    // Mở modal
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
 
-    document.querySelector('#initiativeModal .step-item[data-step="1"]')
-        ?.classList.add('active');
+window.openAddInitiativeModal = openAddInitiativeModal;
 
-    // Nút
-    document.getElementById('btnPrevStep')
-        ?.classList.add('d-none');
 
-    document.getElementById('btnNextStep')
-        ?.classList.remove('d-none');
+/* =====================================================
+   NẠP DANH MỤC NĂM / LĨNH VỰC
+===================================================== */
 
-    document.getElementById('btnSaveInitiative')
-        ?.classList.add('d-none');
+function fillCatalogSelects() {
 
-    // Xóa danh sách tác giả đã chọn nếu có
-    const selectedAuthors = document.getElementById('selectedAuthors');
-    if (selectedAuthors) {
-        selectedAuthors.innerHTML = `
-            <div class="text-muted text-center py-3">
-                Chưa chọn tác giả
-            </div>
-        `;
-    }
-
-    const authorCount = document.getElementById('authorCount');
-    if (authorCount) {
-        authorCount.textContent = '0';
-    }
-
-    // ==========================
-    // Nạp danh mục vào modal
-    // ==========================
-
-    const selNam = document.getElementById('nam_id');
-
+    const selNam = document.getElementById("nam_id");
     if (selNam) {
+        const current = selNam.value;
         selNam.innerHTML =
             '<option value="">-- Chọn năm --</option>' +
             (window.danhMuc?.nam || [])
-                .map(n => `
-                    <option value="${n.id}">
-                        ${n.nam}
-                    </option>
-                `)
-                .join('');
+                .map(n => `<option value="${n.id}">${n.nam}</option>`)
+                .join("");
+        if (current) selNam.value = current;
     }
 
-    const selLv = document.getElementById('linh_vuc_id');
-
+    const selLv = document.getElementById("linh_vuc_id");
     if (selLv) {
+        const current = selLv.value;
         selLv.innerHTML =
             '<option value="">-- Chọn lĩnh vực --</option>' +
             (window.danhMuc?.linh_vuc || [])
@@ -92,28 +136,11 @@ function openAddInitiativeModal() {
                         ${escapeHtml(l.ten)}
                     </option>
                 `)
-                .join('');
+                .join("");
+        if (current) selLv.value = current;
     }
-
-
-    // Mở modal
-    bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
 
-let currentStep = 1;
-let isOtherCQT = false;
-
-document.addEventListener(
-    "DOMContentLoaded",
-    async () => {
-
-        bindStepEvents();
-
-        bindFilePreview();
-
-        setStep(1);
-    }
-);
 
 /* =====================================================
    STEP
@@ -123,24 +150,19 @@ function bindStepEvents() {
 
     document
         .getElementById("btnNextStep")
-        ?.addEventListener(
-            "click",
-            nextStep
-        );
+        ?.addEventListener("click", nextStep);
 
     document
         .getElementById("btnPrevStep")
-        ?.addEventListener(
-            "click",
-            previousStep
-        );
+        ?.addEventListener("click", previousStep);
 
     document
         .getElementById("btnSaveInitiative")
-        ?.addEventListener(
-            "click",
-            saveForm
-        );
+        ?.addEventListener("click", saveForm);
+
+    document
+        .getElementById("btnSkipStep")
+        ?.addEventListener("click", skipCurrentStep);
 }
 
 
@@ -149,112 +171,56 @@ function setStep(step) {
     currentStep = step;
 
     document
-        .querySelectorAll(".form-step")
-        .forEach(element => {
-
-            element.classList.toggle(
+        .querySelectorAll("#initiativeModal .form-step")
+        .forEach(el => {
+            el.classList.toggle(
                 "active",
-                Number(
-                    element.dataset.step
-                ) === step
+                Number(el.dataset.step) === step
             );
-
         });
-
 
     document
-        .querySelectorAll(".step-item")
-        .forEach(element => {
+        .querySelectorAll("#initiativeModal .step-item")
+        .forEach(el => {
 
-            const itemStep =
-                Number(
-                    element.dataset.step
-                );
+            const itemStep = Number(el.dataset.step);
 
-            element.classList.toggle(
-                "active",
-                itemStep === step
-            );
+            // Xoá sạch trước để tránh class "done" tồn đọng
+            el.classList.remove("active", "done");
 
-            element.classList.toggle(
-                "done",
-                itemStep < step
-            );
-
+            if (itemStep === step) {
+                el.classList.add("active");
+            } else if (itemStep < step) {
+                el.classList.add("done");
+            }
         });
 
+    const btnPrev = document.getElementById("btnPrevStep");
+    const btnNext = document.getElementById("btnNextStep");
+    const btnSave = document.getElementById("btnSaveInitiative");
+    const btnSkip = document.getElementById("btnSkipStep");
 
-    const btnPrev =
-        document.getElementById(
-            "btnPrevStep"
-        );
-
-    const btnNext =
-        document.getElementById(
-            "btnNextStep"
-        );
-
-    const btnSave =
-        document.getElementById(
-            "btnSaveInitiative"
-        );
-
-
-    btnPrev?.classList.toggle(
-        "d-none",
-        step === 1
-    );
-
-    btnNext?.classList.toggle(
-        "d-none",
-        step === 3
-    );
-
-    btnSave?.classList.toggle(
-        "d-none",
-        step !== 3
-    );
+    btnPrev?.classList.toggle("d-none", step === 1);
+    btnNext?.classList.toggle("d-none", step === 3);
+    btnSave?.classList.toggle("d-none", step !== 3);
 }
 
 
 function nextStep() {
 
-    if (!validateStep(currentStep)) {
-        return;
-    }
-
-
-    if (isOtherCQT && currentStep === 1) {
-
-        setStep(3);
-
-        return;
-    }
-
+    if (!validateStep(currentStep)) return;
 
     if (currentStep < 3) {
-
         setStep(currentStep + 1);
     }
 }
 
 
 function previousStep() {
-
-    if (isOtherCQT && currentStep === 3) {
-
-        setStep(1);
-
-        return;
-    }
-
-
     if (currentStep > 1) {
-
         setStep(currentStep - 1);
     }
 }
-
 
 /* =====================================================
    VALIDATE
@@ -264,37 +230,15 @@ function validateStep(step) {
 
     if (step === 1) {
 
-        const requiredFields = [
-            "ma",
-            "ten",
-            "nam_id",
-            "linh_vuc_id"
-        ];
-
-        /*
-         * Sáng kiến khác CQT
-         */
-        if (isOtherCQT) {
-            requiredFields.push(
-                "ten_co_quan_thue"
-            );
-        }
-
+        const requiredFields = ["ma", "ten", "nam_id", "linh_vuc_id"];
 
         for (const id of requiredFields) {
 
-            const element =
-                document.getElementById(id);
+            const element = document.getElementById(id);
 
             if (!element?.value.trim()) {
-
                 element?.focus();
-
-                toast(
-                    "Vui lòng nhập đầy đủ thông tin bắt buộc.",
-                    "warning"
-                );
-
+                toast("Vui lòng nhập đầy đủ thông tin bắt buộc.", "warning");
                 return false;
             }
         }
@@ -302,203 +246,61 @@ function validateStep(step) {
         return true;
     }
 
-
-    /*
-     * Sáng kiến khác CQT không cần tác giả
-     */
-    if (step === 2 && isOtherCQT) {
-        return true;
-    }
-
-
-    if (step === 2) {
-
-        if (!selectedAuthors.length) {
-
-            toast(
-                "Vui lòng chọn ít nhất một tác giả.",
-                "warning"
-            );
-
-            return false;
-        }
-
-        return true;
-    }
-
-
+    // Bước 2: không bắt buộc tác giả (nút Bỏ qua đã có)
     return true;
 }
 
-
 /* =====================================================
-   CREATE
+   RESET FORM
 ===================================================== */
-
-function openCreateModal() {
-
-    isOtherCQT = false;
-
-    resetForm();
-
-    document.getElementById(
-        "initiativeModalTitle"
-    ).textContent =
-        "Thêm sáng kiến";
-
-    initiativeModal.show();
-}
-
-function openCreateOtherCQT() {
-
-    isOtherCQT = true;
-
-    resetForm();
-
-    document.getElementById(
-        "initiativeModalTitle"
-    ).textContent =
-        "Thêm sáng kiến khác CQT";
-
-    initiativeModal.show();
-}
-
-function toggleOtherCQTFields() {
-
-    const ngayNopField =
-        document.getElementById("ngayNopField");
-
-    const trangThaiField =
-        document.getElementById("trangThaiField");
-
-    if (isOtherCQT) {
-
-        ngayNopField?.classList.add("d-none");
-
-        trangThaiField?.classList.add("d-none");
-
-    } else {
-
-        ngayNopField?.classList.remove("d-none");
-
-        trangThaiField?.classList.remove("d-none");
-    }
-}
 
 function resetForm() {
 
-    const form =
-        document.getElementById("initiativeForm");
+    const form = document.getElementById("initiativeForm");
+    form?.reset();
 
-    form.reset();
-
-    document.getElementById(
-        "initiativeId"
-    ).value = "";
-
+    document.getElementById("initiativeId").value = "";
     selectedAuthors = [];
+
+    // Clear stepper trước khi setStep
+    document
+        .querySelectorAll("#initiativeModal .step-item")
+        .forEach(el => el.classList.remove("active", "done"));
+
+    document
+        .querySelectorAll("#initiativeModal .form-step")
+        .forEach(el => el.classList.remove("active"));
 
     setStep(1);
 
-    /*
-     * Chỉ set ngày mặc định cho sáng kiến nội bộ
-     */
-    if (!isOtherCQT) {
-        setDefaultDateTime();
-    } else {
-        const ngayNop =
-            document.getElementById("ngay_nop");
+    const trangThai = document.getElementById("trang_thai");
+    if (trangThai) trangThai.value = "DA_NOP";
 
-        if (ngayNop) {
-            ngayNop.value = "";
-        }
-    }
-
-    document.getElementById(
-        "trang_thai"
-    ).value = "DA_NOP";
-
-    renderEmployees();
+    // Reset tác giả
     renderSelectedAuthors();
+    renderEmployees();
 
-    document.getElementById(
-        "existingFileMau01"
-    ).innerHTML = "";
-
-    document.getElementById(
-        "existingFileMau05"
-    ).innerHTML = "";
-
-    document.getElementById(
-        "existingFileMau06"
-    ).innerHTML = "";
-
-    document.getElementById(
-        "existingFilesMinhChung"
-    ).innerHTML = "";
-
-    document.getElementById(
-        "minhChungPreview"
-    ).innerHTML = "";
-
-    /*
-     * Tên Cơ quan Thuế
-     */
-    const tenCoQuanThue =
-        document.getElementById(
-            "ten_co_quan_thue"
-        );
-
-    if (tenCoQuanThue) {
-        tenCoQuanThue.value = "";
-        tenCoQuanThue.required = isOtherCQT;
-    }
-
-    /*
-     * Hiển thị / ẩn field CQT
-     */
-    const otherCQTField =
-        document.getElementById(
-            "otherCQTField"
-        );
-
-    if (otherCQTField) {
-        otherCQTField.style.display =
-            isOtherCQT ? "block" : "none";
-    }
-
-    /*
-     * Tác giả
-     */
-    const authorStep =
-        document.getElementById("authorStep");
-
-    if (authorStep) {
-        authorStep.style.display =
-            isOtherCQT ? "none" : "";
-    }
-
-    /*
-     * Ngày nộp + trạng thái
-     */
-    toggleOtherCQTFields();
+    // Clear file previews
+    ["existingFileMau01", "existingFileMau05", "existingFileMau06",
+     "existingFilesMinhChung", "minhChungPreview"]
+        .forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = "";
+        });
 }
+
 
 function setDefaultDateTime() {
 
-    const input =
-        document.getElementById("ngay_nop");
-
+    const input = document.getElementById("ngay_nop");
     if (!input) return;
 
     const now = new Date();
-
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const day = String(now.getDate()).padStart(2, "0");
 
-    input.value =
-        `${day}/${month}/${year}`;
+    input.value = `${year}-${month}-${day}`;
 }
 
 
@@ -509,104 +311,104 @@ function setDefaultDateTime() {
 async function editItem(id) {
 
     try {
+        // ✅ Gọi đúng API detail
+        const row = await api(
+            `../api/sang-kien-detail.php?id=${encodeURIComponent(id)}`
+        );
 
-        const result =
-            await api(
-                "detail",
-                {
-                    params: { id }
-                }
-            );
+        // Load nhân viên nếu chưa có
+        if (!employees.length) {
+            await loadEmployees();
+        }
 
-        fillForm(result.data);
+        const modalEl = document.getElementById("initiativeModal");
 
-        document.getElementById(
-            "initiativeModalTitle"
-        ).textContent =
+        resetForm();
+        fillForm(row);
+
+        document.getElementById("initiativeModalTitle").textContent =
             "Chỉnh sửa sáng kiến";
 
-        initiativeModal.show();
+        fillCatalogSelects();
+        // Nạp lại giá trị select sau khi reset
+        setValue("nam_id", row.nam_id);
+        setValue("linh_vuc_id", row.linh_vuc_id);
+
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
     } catch (error) {
-
-        toast(
-            error.message,
-            "error"
-        );
+        console.error("editItem:", error);
+        toast(error.message, "error");
     }
 }
+
+window.editInitiative = function (id) {
+    editItem(id);
+};
 
 
 function fillForm(row) {
 
-    document.getElementById(
-        "initiativeId"
-    ).value =
-        row.id || "";
+    document.getElementById("initiativeId").value = row.id || "";
 
-    setValue("ma", row.ma || row.ma_sang_kien);
-    setValue("ten", row.ten || row.ten_sang_kien);
+    setValue("ma", row.ma);
+    setValue("ten", row.ten);
     setValue("nam_id", row.nam_id);
     setValue("linh_vuc_id", row.linh_vuc_id);
+    setValue("noi_dung", row.noi_dung);
+    setValue("muc_tieu", row.muc_tieu);
+    setValue("ket_qua_du_kien", row.ket_qua_du_kien);
+    setValue("ghi_chu", row.ghi_chu);
+    setValue("trang_thai", row.trang_thai || "DA_NOP");
 
-    setValue(
-        "noi_dung",
-        row.noi_dung
-    );
-
-    setValue(
-        "muc_tieu",
-        row.muc_tieu
-    );
-
-    setValue(
-        "ket_qua_du_kien",
-        row.ket_qua_du_kien
-    );
-
-    setValue(
-        "ghi_chu",
-        row.ghi_chu
-    );
-
-    setValue(
-        "trang_thai",
-        row.trang_thai || "DA_NOP"
-    );
-
+    // Ngày nộp
     if (row.ngay_nop) {
-
-        document.getElementById("ngay_nop").value =
-            formatDateVN(row.ngay_nop);
+        const input = document.getElementById("ngay_nop");
+        if (input) {
+            // Giả sử row.ngay_nop là "2025-08-03" hoặc ISO datetime
+            input.value = String(row.ngay_nop).slice(0, 10);
+        }
     }
 
+    // Tên CQT
+    if (row.ten_co_quan_thue) {
+        setValue("ten_co_quan_thue", row.ten_co_quan_thue);
+    }
 
-    const authorIds =
-        row.authors ||
-        row.tac_gia_ids ||
-        [];
+    // Tác giả
+    const authorIds = row.authors || row.tac_gia_ids || [];
+    setSelectedAuthors(authorIds);
 
-    setSelectedAuthors(
-        authorIds
-    );
-
-
-    renderExistingFiles(
-        row.files || []
-    );
-
-    setStep(1);
+    // File đính kèm
+    renderExistingFiles(row.files || []);
 }
+
+
+function setSelectedAuthors(ids) {
+
+    selectedAuthors = (ids || [])
+        .map(x => {
+            // Hỗ trợ cả [{id: 15}] và [15]
+            if (typeof x === "object" && x !== null) {
+                return String(x.id ?? x.nhan_vien_id ?? "");
+            }
+            return String(x);
+        })
+        .filter(Boolean);
+
+    renderEmployees();
+    renderSelectedAuthors();
+}
+
+window.setSelectedAuthors = setSelectedAuthors;
 
 
 function setValue(id, value) {
 
-    const element =
-        document.getElementById(id);
+    const element = document.getElementById(id);
 
     if (element) {
-        element.value =
-            value ?? "";
+        element.value = value ?? "";
     }
 }
 
@@ -619,48 +421,35 @@ function bindFilePreview() {
 
     document
         .getElementById("files_minh_chung")
-        ?.addEventListener(
-            "change",
-            previewMinhChung
-        );
+        ?.addEventListener("change", previewMinhChung);
 }
 
 
 function previewMinhChung(event) {
 
-    const files =
-        Array.from(
-            event.target.files || []
-        );
+    const files = Array.from(event.target.files || []);
+    const container = document.getElementById("minhChungPreview");
 
-    const container =
-        document.getElementById(
-            "minhChungPreview"
-        );
+    if (!container) return;
 
     if (!files.length) {
-
         container.innerHTML = "";
-
         return;
     }
 
     container.innerHTML = `
         <div class="list-group">
-            ${
-                files.map(file => `
-                    <div class="list-group-item d-flex justify-content-between">
-                        <span>
-                            <i class="bi bi-paperclip me-2"></i>
-                            ${escapeHtml(file.name)}
-                        </span>
-
-                        <span class="text-muted small">
-                            ${formatBytes(file.size)}
-                        </span>
-                    </div>
-                `).join("")
-            }
+            ${files.map(file => `
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>
+                        <i class="bi bi-paperclip me-2"></i>
+                        ${escapeHtml(file.name)}
+                    </span>
+                    <span class="text-muted small">
+                        ${formatBytes(file.size)}
+                    </span>
+                </div>
+            `).join("")}
         </div>
     `;
 }
@@ -672,55 +461,35 @@ function renderExistingFiles(files) {
         MAU_01: "existingFileMau01",
         MAU_05: "existingFileMau05",
         MAU_06: "existingFileMau06",
-        MINH_CHUNG: "existingFilesMinhChung"
+        MINH_CHUNG: "existingFilesMinhChung",
     };
 
-
     Object.values(groups).forEach(id => {
-
-        const element =
-            document.getElementById(id);
-
-        if (element) {
-            element.innerHTML = "";
-        }
-
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = "";
     });
-
 
     (files || []).forEach(file => {
 
-        const containerId =
-            groups[file.loai_file];
-
+        const containerId = groups[file.loai_file];
         if (!containerId) return;
 
-        const container =
-            document.getElementById(
-                containerId
-            );
-
+        const container = document.getElementById(containerId);
         if (!container) return;
 
         container.insertAdjacentHTML(
             "beforeend",
             `
             <div class="alert alert-light border py-2 mb-2">
-
                 <i class="bi bi-file-earmark me-1"></i>
-
-                ${escapeHtml(
-                    file.ten_file
-                )}
-
+                ${escapeHtml(file.ten_file)}
                 <a
-                    href="api.php?action=download&id=${file.id}"
+                    href="../api/sang-kien-download.php?id=${file.id}"
                     target="_blank"
                     class="btn btn-sm btn-outline-primary float-end"
                 >
                     <i class="bi bi-download"></i>
                 </a>
-
             </div>
             `
         );
@@ -735,177 +504,61 @@ function renderExistingFiles(files) {
 async function saveForm() {
 
     if (!validateStep(1)) {
-
         setStep(1);
-
         return;
     }
 
+    const form = document.getElementById("initiativeForm");
+    const formData = new FormData(form);
 
-    if (!isOtherCQT && !validateStep(2)) {
-
-        setStep(2);
-
-        return;
-    }
-
-
-    const form =
-        document.getElementById(
-            "initiativeForm"
-        );
-
-    const formData =
-        new FormData(form);
-
-
-    /*
-     * Xóa author_ids cũ rồi thêm
-     * theo đúng thứ tự.
-     */
+    // Xoá author_ids cũ rồi thêm theo đúng thứ tự
     formData.delete("author_ids[]");
 
-    if (!isOtherCQT) {
+    selectedAuthors.forEach(id => {
+        formData.append("author_ids[]", id);
+    });
 
-        const ngayNop =
-            document.getElementById("ngay_nop")?.value.trim();
-
-        if (ngayNop) {
-
-            const parts =
-                ngayNop.split("/");
-
-            if (parts.length === 3) {
-
-                formData.set(
-                    "ngay_nop",
-                    `${parts[2]}-${parts[1]}-${parts[0]}`
-                );
-            }
-        }
-
-    } else {
-
-        formData.delete("ngay_nop");
+    // Ngày nộp: chuẩn hoá về Y-m-d
+    const raw = document.getElementById("ngay_nop")?.value.trim() || "";
+    if (raw) {
+        formData.set("ngay_nop", raw.slice(0, 10));
     }
 
+    // Tên CQT
+    const t = document.getElementById("ten_co_quan_thue")?.value.trim() || "";
+    formData.set("ten_co_quan_thue", t);
 
-    /*
-     * Chuyển datetime-local
-     * sang format MySQL.
-     */
-    /*
-    * Loại sáng kiến
-    */
-    formData.set(
-        "loai_sang_kien",
-        isOtherCQT
-            ? "KHAC_CQT"
-            : "NOI_BO"
-    );
-
-
-    /*
-    * Tên Cơ quan Thuế
-    */
-    if (isOtherCQT) {
-
-        const tenCoQuanThue =
-            document.getElementById("ten_co_quan_thue")?.value.trim();
-
-        formData.set(
-            "ten_co_quan_thue",
-            tenCoQuanThue || ""
-        );
-
-    } else {
-
-        formData.delete("ten_co_quan_thue");
-    }
-
-
-    /*
-    * Ngày nộp
-    */
-    if (!isOtherCQT) {
-
-        const ngayNop =
-            document.getElementById("ngay_nop")?.value.trim();
-
-        if (ngayNop) {
-
-            const parts =
-                ngayNop.split("/");
-
-            if (parts.length === 3) {
-
-                formData.set(
-                    "ngay_nop",
-                    `${parts[2]}-${parts[1]}-${parts[0]}`
-                );
-            }
-
-        }
-
-    } else {
-
-        formData.delete("ngay_nop");
-    }
-
-
-    const button =
-        document.getElementById(
-            "btnSaveInitiative"
-        );
-
-    const oldHtml =
-        button.innerHTML;
+    const button = document.getElementById("btnSaveInitiative");
+    const oldHtml = button.innerHTML;
 
     button.disabled = true;
-
     button.innerHTML = `
         <span class="spinner-border spinner-border-sm me-1"></span>
         Đang lưu...
     `;
 
-
     try {
 
-        const result =
-            await api(
-                "save",
-                {
-                    method: "POST",
-                    body: formData
-                }
-            );
+        const result = await api(
+            "../api/sang-kien-save.php",
+            { method: "POST", body: formData }
+        );
 
         await Swal.fire({
             icon: "success",
             title: "Đã lưu",
-            text:
-                result.message ||
-                "Lưu sáng kiến thành công.",
+            text: result.message || "Lưu sáng kiến thành công.",
             timer: 1800,
-            showConfirmButton: false
+            showConfirmButton: false,
         });
 
-        initiativeModal.hide();
+        bootstrap.Modal
+            .getOrCreateInstance(document.getElementById("initiativeModal"))
+            .hide();
 
-        /*
-         * Nếu app.js cũ có loadDashboard()
-         * và loadInitiatives() thì gọi lại.
-         */
-        if (typeof loadDashboard === "function") {
-            loadDashboard();
-        }
-
-        if (typeof loadInitiatives === "function") {
-            loadInitiatives(
-                typeof currentPage !== "undefined"
-                    ? currentPage
-                    : 1
-            );
+        // Refresh danh sách
+        if (typeof loadSangKien === "function") {
+            loadSangKien();
         }
 
     } catch (error) {
@@ -913,7 +566,7 @@ async function saveForm() {
         Swal.fire({
             icon: "error",
             title: "Không thể lưu",
-            text: error.message
+            text: error.message || "Lỗi không xác định",
         });
 
     } finally {
@@ -921,4 +574,218 @@ async function saveForm() {
         button.disabled = false;
         button.innerHTML = oldHtml;
     }
+}
+
+
+/* =====================================================
+   NHÂN VIÊN
+===================================================== */
+
+async function loadEmployees() {
+
+    try {
+        const list = await api("../api/nhan-vien-list.php");
+
+        employees = Array.isArray(list) ? list : [];
+
+        renderAuthorDepartments();
+        renderEmployees();
+
+    } catch (error) {
+
+        console.error("loadEmployees:", error);
+        employees = [];
+        renderEmployees();
+        toast("Không thể tải danh sách nhân viên.", "error");
+    }
+}
+
+
+function renderAuthorDepartments() {
+
+    const sel = document.getElementById("filterAuthorDepartment");
+    if (!sel) return;
+
+    const map = new Map();
+
+    employees.forEach(e => {
+        const id = e.id_phong_ban;
+        const ten = e.ten_phong || `Phòng #${id}`;
+        if (id && !map.has(String(id))) {
+            map.set(String(id), ten);
+        }
+    });
+
+    const current = sel.value;
+
+    sel.innerHTML =
+        '<option value="">-- Tất cả phòng ban --</option>' +
+        [...map.entries()]
+            .map(([id, ten]) => `
+                <option value="${escapeHtml(id)}">
+                    ${escapeHtml(ten)}
+                </option>
+            `)
+            .join("");
+
+    if (current && map.has(current)) {
+        sel.value = current;
+    }
+}
+
+
+function renderEmployees() {
+
+    const container = document.getElementById("employeeList");
+    if (!container) return;
+
+    const keyword =
+        (document.getElementById("authorSearch")?.value || "")
+            .trim()
+            .toLowerCase();
+
+    const department =
+        document.getElementById("filterAuthorDepartment")?.value || "";
+
+    const filtered = employees.filter(employee => {
+
+        const hoTen = String(employee.ho_ten || "").toLowerCase();
+        const maNV = String(employee.ma_nhan_vien || "").toLowerCase();
+
+        const matchKeyword =
+            !keyword || hoTen.includes(keyword) || maNV.includes(keyword);
+
+        const matchDepartment =
+            !department ||
+            String(employee.id_phong_ban) === String(department);
+
+        return matchKeyword && matchDepartment;
+    });
+
+    if (!filtered.length) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-4">
+                Không tìm thấy nhân viên.
+            </div>
+        `;
+        return;
+    }
+
+    const frag = document.createDocumentFragment();
+
+    filtered.forEach(employee => {
+
+        const id = String(employee.id);
+        const selected = selectedAuthors.some(aid => aid === id);
+
+        const label = document.createElement("label");
+        label.className =
+            "list-group-item employee-item" +
+            (selected ? " selected" : "");
+
+        label.innerHTML = `
+            <div class="d-flex align-items-center">
+                <input
+                    class="form-check-input me-3 author-checkbox"
+                    type="checkbox"
+                    value="${escapeHtml(id)}"
+                    ${selected ? "checked" : ""}
+                >
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">
+                        ${escapeHtml(employee.ho_ten || "")}
+                    </div>
+                    <div class="small text-muted">
+                        ${escapeHtml(employee.ma_nhan_vien || "")}
+                        ${
+                            employee.ten_phong
+                                ? " · " + escapeHtml(employee.ten_phong)
+                                : ""
+                        }
+                    </div>
+                </div>
+            </div>
+        `;
+
+        frag.appendChild(label);
+    });
+
+    container.innerHTML = "";
+    container.appendChild(frag);
+}
+
+
+function handleAuthorChange(checkbox) {
+
+    const id = String(checkbox.value);
+
+    if (checkbox.checked) {
+        if (!selectedAuthors.some(aid => aid === id)) {
+            selectedAuthors.push(id);
+        }
+    } else {
+        selectedAuthors = selectedAuthors.filter(aid => aid !== id);
+    }
+
+    const label = checkbox.closest(".employee-item");
+    label?.classList.toggle("selected", checkbox.checked);
+
+    renderSelectedAuthors();
+}
+
+
+function renderSelectedAuthors() {
+
+    const container = document.getElementById("selectedAuthors");
+    const counter = document.getElementById("authorCount");
+
+    if (counter) counter.textContent = selectedAuthors.length;
+
+    if (!container) return;
+
+    if (!selectedAuthors.length) {
+        container.innerHTML = `
+            <div class="text-muted text-center py-3">
+                Chưa chọn tác giả
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = selectedAuthors.map((id, index) => {
+
+        const emp = employees.find(e => String(e.id) === String(id));
+
+        const hoTen = emp?.ho_ten || `#${id}`;
+        const maNV  = emp?.ma_nhan_vien || "";
+        const phong = emp?.ten_phong || "";
+
+        const vaiTro = index === 0 ? "Tác giả" : "Đồng tác giả";
+
+        return `
+            <div class="author-row">
+                <div class="author-order">${index + 1}</div>
+
+                <div class="author-info">
+                    <div class="author-name">
+                        ${escapeHtml(hoTen)}
+                        <span class="badge bg-primary ms-2">${vaiTro}</span>
+                    </div>
+                    <div class="author-department">
+                        ${escapeHtml(maNV)}
+                        ${phong ? " · " + escapeHtml(phong) : ""}
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    data-remove-author="${escapeHtml(id)}"
+                    title="Xoá"
+                >
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        `;
+    }).join("");
 }
