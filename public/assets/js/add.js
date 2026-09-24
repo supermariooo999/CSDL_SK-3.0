@@ -308,82 +308,6 @@ function setDefaultDateTime() {
    EDIT
 ===================================================== */
 
-async function editItem(id) {
-
-    try {
-        // ✅ Gọi đúng API detail
-        const row = await api(
-            `../api/sang-kien-detail.php?id=${encodeURIComponent(id)}`
-        );
-
-        // Load nhân viên nếu chưa có
-        if (!employees.length) {
-            await loadEmployees();
-        }
-
-        const modalEl = document.getElementById("initiativeModal");
-
-        resetForm();
-        fillForm(row);
-
-        document.getElementById("initiativeModalTitle").textContent =
-            "Chỉnh sửa sáng kiến";
-
-        fillCatalogSelects();
-        // Nạp lại giá trị select sau khi reset
-        setValue("nam_id", row.nam_id);
-        setValue("linh_vuc_id", row.linh_vuc_id);
-
-        bootstrap.Modal.getOrCreateInstance(modalEl).show();
-
-    } catch (error) {
-        console.error("editItem:", error);
-        toast(error.message, "error");
-    }
-}
-
-window.editInitiative = function (id) {
-    editItem(id);
-};
-
-
-function fillForm(row) {
-
-    document.getElementById("initiativeId").value = row.id || "";
-
-    setValue("ma", row.ma);
-    setValue("ten", row.ten);
-    setValue("nam_id", row.nam_id);
-    setValue("linh_vuc_id", row.linh_vuc_id);
-    setValue("noi_dung", row.noi_dung);
-    setValue("muc_tieu", row.muc_tieu);
-    setValue("ket_qua_du_kien", row.ket_qua_du_kien);
-    setValue("ghi_chu", row.ghi_chu);
-    setValue("trang_thai", row.trang_thai || "DA_NOP");
-
-    // Ngày nộp
-    if (row.ngay_nop) {
-        const input = document.getElementById("ngay_nop");
-        if (input) {
-            // Giả sử row.ngay_nop là "2025-08-03" hoặc ISO datetime
-            input.value = String(row.ngay_nop).slice(0, 10);
-        }
-    }
-
-    // Tên CQT
-    if (row.ten_co_quan_thue) {
-        setValue("ten_co_quan_thue", row.ten_co_quan_thue);
-    }
-
-    // Tác giả
-    const authorIds = row.authors || row.tac_gia_ids || [];
-    setSelectedAuthors(authorIds);
-
-    // File đính kèm
-    renderExistingFiles(row.files || []);
-}
-
-
 function setSelectedAuthors(ids) {
 
     selectedAuthors = (ids || [])
@@ -453,49 +377,6 @@ function previewMinhChung(event) {
         </div>
     `;
 }
-
-
-function renderExistingFiles(files) {
-
-    const groups = {
-        MAU_01: "existingFileMau01",
-        MAU_05: "existingFileMau05",
-        MAU_06: "existingFileMau06",
-        MINH_CHUNG: "existingFilesMinhChung",
-    };
-
-    Object.values(groups).forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = "";
-    });
-
-    (files || []).forEach(file => {
-
-        const containerId = groups[file.loai_file];
-        if (!containerId) return;
-
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        container.insertAdjacentHTML(
-            "beforeend",
-            `
-            <div class="alert alert-light border py-2 mb-2">
-                <i class="bi bi-file-earmark me-1"></i>
-                ${escapeHtml(file.ten_file)}
-                <a
-                    href="../api/sang-kien-download.php?id=${file.id}"
-                    target="_blank"
-                    class="btn btn-sm btn-outline-primary float-end"
-                >
-                    <i class="bi bi-download"></i>
-                </a>
-            </div>
-            `
-        );
-    });
-}
-
 
 /* =====================================================
    SAVE

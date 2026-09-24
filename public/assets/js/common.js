@@ -323,14 +323,22 @@ window.renderIdeaTable = function (ideas) {
             `<span class="status-badge ${statusMeta.cls}">${statusStr}</span>`,
 
             // [6] thao tác
-            `<div class="text-center">
+            `<div class="text-center d-flex gap-1 justify-content-center">
                 <button
                     type="button"
-                    class="btn btn-sm btn-outline-danger"
+                    class="btn btn-sm btn-icon btn-edit"
+                    data-action="edit"
+                    title="Sửa"
+                ><i class="bi bi-pencil"></i></button>
+
+                <button
+                    type="button"
+                    class="btn btn-sm btn-icon btn-delete"
                     data-action="delete"
                     title="Xoá"
                 ><i class="bi bi-trash"></i></button>
             </div>`,
+
         ];
     });
 
@@ -392,3 +400,42 @@ function toast(title, icon = "info") {
 }
 
 window.toast = toast;
+
+// =====================================================
+// PAGE HEADER STICKY — hiệu ứng khi scroll
+// =====================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const header = document.querySelector('.page-header-sticky');
+    if (!header) return;
+
+    let ticking = false;
+
+    const updateStuckState = () => {
+        // Lấy vị trí top của navbar (navbar cao ~62px)
+        const navbar = document.querySelector('.navbar');
+        const navbarBottom = navbar
+            ? navbar.getBoundingClientRect().bottom
+            : 0;
+
+        // Nếu header đã chạm navbar → set stuck
+        const headerTop = header.getBoundingClientRect().top;
+        const shouldStick = headerTop <= navbarBottom + 1;
+
+        header.classList.toggle('is-stuck', shouldStick);
+        ticking = false;
+    };
+
+    const onScroll = () => {
+        if (!ticking) {
+            window.requestAnimationFrame(updateStuckState);
+            ticking = true;
+        }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+
+    // Chạy lần đầu
+    updateStuckState();
+});

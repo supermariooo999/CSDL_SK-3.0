@@ -1,75 +1,147 @@
+/* =========================================================
+   STEPPER
+========================================================= */
+
 .stepper {
     display: flex;
     align-items: center;
     width: 100%;
+    padding: 4px 0;
 }
 
 .step-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    color: #6c757d;
+    gap: 12px;
+    color: var(--ink-400);
     flex-shrink: 0;
+    transition: color .25s ease;
 }
 
 .step-number {
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--ink-200);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 14px;
     background: #fff;
+    color: var(--ink-400);
+    transition: all .3s cubic-bezier(.4, 0, .2, 1);
+    position: relative;
 }
 
 .step-label {
     display: flex;
     flex-direction: column;
-    line-height: 1.2;
+    line-height: 1.3;
+}
+
+.step-label strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-500);
+    transition: color .25s ease;
 }
 
 .step-label small {
-    color: #6c757d;
+    font-size: 11px;
+    color: var(--ink-400);
+    margin-top: 1px;
 }
 
-.step-item.active {
-    color: var(--bs-primary);
-}
-
+/* Active */
 .step-item.active .step-number {
-    border-color: var(--bs-primary);
-    background: var(--bs-primary);
+    border-color: var(--brand-500);
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
     color: #fff;
+    box-shadow: 0 0 0 5px rgba(99, 102, 241, .15), 0 8px 20px rgba(99, 102, 241, .3);
+    transform: scale(1.05);
 }
 
+.step-item.active .step-label strong { color: var(--brand-600); }
+.step-item.active .step-label small  { color: var(--brand-500); }
+
+/* Done */
 .step-item.done .step-number {
-    border-color: var(--bs-success);
-    background: var(--bs-success);
+    border-color: #10b981;
+    background: linear-gradient(135deg, #10b981, #059669);
     color: #fff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, .25);
 }
 
+.step-item.done .step-number::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,.0);
+    animation: pulseDone .6s ease;
+}
+
+@keyframes pulseDone {
+    0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, .5); }
+    100% { box-shadow: 0 0 0 14px rgba(16, 185, 129, 0); }
+}
+
+.step-item.done .step-label strong { color: #059669; }
+
+/* Line */
 .step-line {
-    height: 2px;
-    background: #dee2e6;
+    height: 3px;
+    background: var(--ink-100);
     flex: 1;
-    margin: 0 15px;
+    margin: 0 16px;
+    border-radius: 99px;
+    position: relative;
+    overflow: hidden;
 }
 
-.form-step {
-    display: none;
+.step-line::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, #10b981, var(--brand-500));
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform .4s ease;
 }
 
-.form-step.active {
-    display: block;
+.step-item.done + .step-line::after,
+.step-item.active + .step-line::after {
+    transform: scaleX(1);
 }
+
+/* =========================================================
+   FORM STEP
+========================================================= */
+
+.form-step { display: none; animation: fadeStep .3s ease; }
+.form-step.active { display: block; }
+
+@keyframes fadeStep {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   FILE BOX
+========================================================= */
 
 .file-box {
-    border: 1px solid #dee2e6;
-    border-radius: 10px;
-    padding: 16px;
-    background: #fff;
+    border: 1px solid var(--ink-200);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    background: linear-gradient(180deg, #fff, var(--surface-soft));
+    transition: all .2s ease;
+}
+
+.file-box:hover {
+    border-color: var(--brand-200);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, .06);
 }
 
 .file-box-title {
@@ -78,74 +150,144 @@
     align-items: center;
 }
 
-.file-box-title i {
-    font-size: 1.25rem;
-    margin-right: 6px;
+.file-box-title > div {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
 }
 
-.employee-item {
+.file-box-title i {
+    font-size: 1.15rem;
+    margin-right: 0;
+}
+
+.file-box-title strong { color: var(--ink-800); font-weight: 700; }
+
+.file-box .badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 99px;
+    letter-spacing: .02em;
+}
+
+.file-box .form-control[type="file"] {
+    padding: 8px 12px;
+    font-size: 13px;
+    background: #fff;
+}
+
+.file-box .form-control[type="file"]::file-selector-button {
+    border: 0;
+    background: var(--brand-50);
+    color: var(--brand-700);
+    padding: 6px 14px;
+    border-radius: 7px;
+    margin-right: 12px;
+    font-weight: 600;
+    font-size: 12.5px;
     cursor: pointer;
     transition: background .15s ease;
 }
 
+.file-box .form-control[type="file"]::file-selector-button:hover {
+    background: var(--brand-100);
+}
+
+/* =========================================================
+   EMPLOYEE PICKER
+========================================================= */
+
+.employee-item {
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+    border-left: 3px solid transparent;
+    padding: 12px 16px;
+    font-size: 13.5px;
+}
+
 .employee-item:hover {
-    background: #f8f9fa;
+    background: var(--brand-50);
 }
 
 .employee-item.selected {
-    background: #e8f3ff;
+    background: linear-gradient(90deg, var(--brand-50), #fdf2f8);
+    border-left-color: var(--brand-500);
 }
+
+.employee-item .fw-semibold { color: var(--ink-800); font-size: 13.5px; }
+
+/* =========================================================
+   SELECTED AUTHORS
+========================================================= */
 
 .author-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-bottom: 1px solid #dee2e6;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--ink-100);
+    transition: background .15s ease;
 }
 
-.author-row:last-child {
-    border-bottom: 0;
-}
+.author-row:hover { background: var(--brand-50); }
+
+.author-row:last-child { border-bottom: 0; }
 
 .author-order {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    background: #0d6efd;
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12.5px;
+    font-weight: 700;
+    flex: 0 0 30px;
+    box-shadow: 0 3px 8px rgba(99, 102, 241, .28);
 }
 
-.author-info {
-    flex: 1;
-}
+.author-info { flex: 1; min-width: 0; }
 
 .author-name {
     font-weight: 600;
+    font-size: 13.5px;
+    color: var(--ink-800);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.author-name .badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    letter-spacing: .02em;
 }
 
 .author-department {
     font-size: 12px;
-    color: #6c757d;
+    color: var(--ink-500);
+    margin-top: 2px;
 }
 
+.file-mau {
+    padding: 15px !important;
+    padding-left: 20px !important;
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
 @media (max-width: 768px) {
-
-    .step-label small {
-        display: none;
-    }
-
-    .step-label strong {
-        font-size: 12px;
-    }
-
-    .step-line {
-        margin: 0 7px;
-    }
-
+    .step-label small { display: none; }
+    .step-label strong { font-size: 11.5px; }
+    .step-line { margin: 0 8px; }
+    .step-number { width: 34px; height: 34px; font-size: 13px; }
+    .step-item { gap: 8px; }
 }

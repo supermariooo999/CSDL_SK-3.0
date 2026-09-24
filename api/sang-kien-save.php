@@ -11,7 +11,6 @@ header('Content-Type: application/json; charset=utf-8');
 error_log('=== sang-kien-save DEBUG ===');
 error_log('POST keys: ' . implode(',', array_keys($_POST)));
 error_log('FILES keys: ' . implode(',', array_keys($_FILES)));
-error_log('FILES detail: ' . print_r($_FILES, true));
 error_log('author_ids: ' . print_r($_POST['author_ids'] ?? 'NOT SET', true));
 // ===========================
 
@@ -78,15 +77,16 @@ try {
     }
 
     // =====================================================
-    // 2.1. KIỂM TRA TRÙNG MÃ TRONG CÙNG NĂM
+    // 4. KIỂM TRA TRÙNG MÃ TRONG CÙNG NĂM
     // =====================================================
+
     $duplicate = DB::one(
         "SELECT id
-        FROM qlsk_sang_kien
-        WHERE nam_id = ?
-        AND ma = ?
-        AND id <> ?
-        LIMIT 1",
+         FROM qlsk_sang_kien
+         WHERE nam_id = ?
+           AND ma = ?
+           AND id <> ?
+         LIMIT 1",
         [$yearId, $code, $id]
     );
 
@@ -98,7 +98,7 @@ try {
     }
 
     // =====================================================
-    // 4. XỬ LÝ TRANSACTION
+    // 5. XỬ LÝ TRANSACTION
     // =====================================================
 
     $pdo->beginTransaction();
@@ -153,8 +153,15 @@ try {
 
             $initiativeId = $id;
 
-            // Xoá file cũ trước khi upload file mới
-            deleteInitiativeFiles($pdo, $initiativeId);
+            /*
+             * ✅ KHÔNG xoá file cũ ở đây.
+             *
+             * Việc xoá file được xử lý riêng trong processUploadedFiles():
+             * chỉ xoá file cũ của ĐÚNG LOẠI khi user upload file mới
+             * thay thế (Mẫu 01/05/06).
+             *
+             * File minh chứng: append thêm, không xoá.
+             */
 
         }
 
@@ -250,6 +257,7 @@ function normalizeDate(string $raw): ?string
     return null;
 }
 
+
 /**
  * Lưu tác giả / đồng tác giả.
  *
@@ -261,15 +269,15 @@ function normalizeDate(string $raw): ?string
 function saveAuthors(PDO $pdo, int $initiativeId): void
 {
     // Xoá tác giả cũ
-    DB::exec(
-        "DELETE FROM qlsk_sang_kien_tac_gia WHERE sang_kien_id = ?",
-        [$initiativeId]
+    $stmt = $pdo->prepare(
+        "DELETE FROM qlsk_sang_kien_tac_gia WHERE sang_kien_id = ?"
     );
+    $stmt->execute([$initiativeId]);
 
     $authorIds = $_POST['author_ids'] ?? [];
 
     if (!is_array($authorIds) || count($authorIds) === 0) {
-        return; // Không có tác giả → OK, bỏ qua
+        return;
     }
 
     // Lọc ID hợp lệ, giữ nguyên thứ tự
@@ -296,18 +304,20 @@ function saveAuthors(PDO $pdo, int $initiativeId): void
     }
 }
 
+
 /**
  * Xử lý upload file.
  *
- * Nhận:
- *   $_FILES['file_mau_01']          (single)
- *   $_FILES['file_mau_05']          (single)
- *   $_FILES['file_mau_06']          (single)
- *   $_FILES['files_minh_chung']     (multiple)
+ * QUY TẮC:
+ * - File Mẫu 01/05/06: mỗi loại chỉ giữ 1 file.
+ *   Nếu user upload file mới → xoá file cũ CÙNG LOẠI trước khi lưu file mới.
+ *   Nếu user KHÔNG upload → giữ nguyên file cũ.
+ *
+ * - File minh chứng: append thêm, không xoá file cũ.
  */
 function processUploadedFiles(PDO $pdo, int $initiativeId): void
 {
-    $baseDir = realpath(__DIR__ . '/..');
+    $baseDir    = realpath(__DIR__ . '/..');
     $storageDir = $baseDir . '/storage/sang-kien/' . $initiativeId;
 
     if (!is_dir($storageDir)) {
@@ -325,9 +335,8 @@ function processUploadedFiles(PDO $pdo, int $initiativeId): void
         'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ];
 
-    $maxSize = 20 * 1024 * 1024; // 20MB
+    $maxSize = 20 * 1024 * 1024;
 
-    // Map field → loai_file
     $singleFields = [
         'file_mau_01' => 'MAU_01',
         'file_mau_05' => 'MAU_05',
@@ -347,26 +356,42 @@ function processUploadedFiles(PDO $pdo, int $initiativeId): void
         if (!isset($_FILES[$field])) continue;
 
         $f = $_FILES[$field];
+
+        // Không upload file mới → giữ file cũ
         if ($f['error'] === UPLOAD_ERR_NO_FILE) continue;
 
         if ($f['error'] !== UPLOAD_ERR_OK) {
-            throw new RuntimeException("Lỗi upload file $mapFileName[$field] (code {$f['error']}).");
+            throw new RuntimeException(
+                "Lỗi upload file {$mapFileName[$field]} (code {$f['error']})."
+            );
         }
 
         if ($f['size'] > $maxSize) {
-            throw new RuntimeException("File $mapFileName[$field] vượt quá 20MB.");
+            throw new RuntimeException(
+                "File {$mapFileName[$field]} vượt quá 20MB."
+            );
         }
 
         $ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
 
-        if (!in_array($ext, ['docx'], true)) {
-            throw new RuntimeException("File $mapFileName[$field] chỉ nhận DOCX.");
+        if ($ext !== 'docx') {
+            throw new RuntimeException(
+                "File {$mapFileName[$field]} chỉ nhận DOCX."
+            );
         }
 
+        // Xoá file cũ CÙNG LOẠI trước khi lưu file mới
+        deleteFilesByType($pdo, $initiativeId, $loaiFile, $baseDir);
+
         saveUploadedFile(
-            $pdo, $initiativeId, $loaiFile,
-            $f, $storageDir, $baseDir,
-            $allowed, $ext
+            $pdo,
+            $initiativeId,
+            $loaiFile,
+            $f,
+            $storageDir,
+            $baseDir,
+            $allowed,
+            $ext
         );
     }
 
@@ -385,17 +410,23 @@ function processUploadedFiles(PDO $pdo, int $initiativeId): void
                 if ($m['error'][$i] === UPLOAD_ERR_NO_FILE) continue;
 
                 if ($m['error'][$i] !== UPLOAD_ERR_OK) {
-                    throw new RuntimeException("Lỗi upload file minh chứng #" . ($i + 1));
+                    throw new RuntimeException(
+                        "Lỗi upload file minh chứng #" . ($i + 1)
+                    );
                 }
 
                 if ($m['size'][$i] > $maxSize) {
-                    throw new RuntimeException("File minh chứng #" . ($i + 1) . " vượt quá 20MB.");
+                    throw new RuntimeException(
+                        "File minh chứng #" . ($i + 1) . " vượt quá 20MB."
+                    );
                 }
 
                 $ext = strtolower(pathinfo($m['name'][$i], PATHINFO_EXTENSION));
 
                 if (!isset($allowed[$ext])) {
-                    throw new RuntimeException("Định dạng file minh chứng không hợp lệ: .$ext");
+                    throw new RuntimeException(
+                        "Định dạng file minh chứng không hợp lệ: .$ext"
+                    );
                 }
 
                 $single = [
@@ -406,15 +437,22 @@ function processUploadedFiles(PDO $pdo, int $initiativeId): void
                     'size'     => $m['size'][$i],
                 ];
 
+                // Minh chứng: append thêm, không xoá file cũ
                 saveUploadedFile(
-                    $pdo, $initiativeId, 'MINH_CHUNG',
-                    $single, $storageDir, $baseDir,
-                    $allowed, $ext
+                    $pdo,
+                    $initiativeId,
+                    'MINH_CHUNG',
+                    $single,
+                    $storageDir,
+                    $baseDir,
+                    $allowed,
+                    $ext
                 );
             }
         }
     }
 }
+
 
 /**
  * Lưu 1 file vật lý + record DB + trích xuất nội dung.
@@ -459,10 +497,12 @@ function saveUploadedFile(
     );
 
     $fileId = (int)$pdo->lastInsertId();
-    
-    // Trích xuất nội dung DOCX (chỉ với MAU_01 / MAU_05 / MAU_06)
-    if (in_array($loaiFile, ['MAU_01', 'MAU_05', 'MAU_06'], true)
-        && in_array($ext, ['docx', 'doc'], true)) {
+
+    // Trích xuất nội dung DOCX cho Mẫu 01/05/06
+    if (
+        in_array($loaiFile, ['MAU_01', 'MAU_05', 'MAU_06'], true)
+        && $ext === 'docx'
+    ) {
         try {
             $data = extractDocxDocument($absolutePath);
 
@@ -478,4 +518,65 @@ function saveUploadedFile(
             error_log("[extract] file=$absolutePath err=" . $e->getMessage());
         }
     }
+}
+
+
+/**
+ * Xoá file cũ của 1 loại cụ thể (MAU_01, MAU_05, MAU_06, MINH_CHUNG).
+ *
+ * - Xoá file vật lý (dùng absolute path)
+ * - Xoá content cache (qlsk_file_noi_dung)
+ * - Xoá record DB (qlsk_file)
+ */
+function deleteFilesByType(
+    PDO $pdo,
+    int $initiativeId,
+    string $loaiFile,
+    string $baseDir
+): void {
+
+    // Lấy danh sách file cần xoá
+    $rows = DB::all(
+        "SELECT id, duong_dan
+         FROM qlsk_file
+         WHERE sang_kien_id = ?
+           AND loai_file = ?",
+        [$initiativeId, $loaiFile]
+    );
+
+    if (!$rows) return;
+
+    $fileIds = [];
+
+    foreach ($rows as $row) {
+
+        $fileIds[] = (int)$row['id'];
+
+        if (empty($row['duong_dan'])) continue;
+
+        // Chuyển relative path → absolute path
+        $absPath = $baseDir . '/' . ltrim($row['duong_dan'], '/');
+
+        if (is_file($absPath)) {
+            @unlink($absPath);
+        }
+    }
+
+    // Xoá content cache
+    if ($fileIds) {
+        $placeholders = implode(',', array_fill(0, count($fileIds), '?'));
+
+        $stmt = $pdo->prepare(
+            "DELETE FROM qlsk_file_noi_dung WHERE file_id IN ($placeholders)"
+        );
+        $stmt->execute($fileIds);
+    }
+
+    // Xoá record file
+    $stmt = $pdo->prepare(
+        "DELETE FROM qlsk_file
+         WHERE sang_kien_id = ?
+           AND loai_file = ?"
+    );
+    $stmt->execute([$initiativeId, $loaiFile]);
 }

@@ -549,7 +549,16 @@ function renderBatchResult(data) {
           r.sections || {},
 
         name_score:
-          Number(r.name_score || 0)
+          Number(r.name_score || 0),
+
+        // ✅ Thêm 2 field mới
+        check_reason:
+          r.check_reason || '',
+
+        quick_score:
+          r.quick_score !== undefined
+            ? Number(r.quick_score)
+            : null
 
       };
     }
@@ -602,9 +611,23 @@ function renderBatchResult(data) {
 
   if (subtitle) {
 
+    /*
+     * ✅ Subtitle mới — phản ánh 3 tầng lọc
+     */
+    const skipStats =
+      data?.skip_stats || {};
+
+    const nameDiff =
+      Number(skipStats.name_diff || 0);
+
+    const contentDiff =
+      Number(skipStats.content_diff || 0);
+
     subtitle.textContent =
       `Đã kiểm tra ${results.length} sáng kiến — ` +
-      `${totalMatches} trường hợp vượt qua bước lọc tên`;
+      `${totalMatches} trường hợp vượt qua bộ lọc ` +
+      `(bỏ qua ${nameDiff} do tên khác, ` +
+      `${contentDiff} do nội dung khác)`;
   }
 
 
@@ -709,7 +732,8 @@ function renderBatchResult(data) {
           <div class="duplicate-empty-text">
 
             Không có sáng kiến nào vượt qua
-            bước lọc tên để cần phân tích NLP.
+            bộ lọc tên + tác giả + nội dung
+            để cần phân tích NLP.
 
           </div>
 
@@ -747,6 +771,35 @@ function renderBatchResult(data) {
 
         const idB =
           Number(other.id || 0);
+
+
+        /*
+         * ✅ Render badge lý do check
+         */
+        const checkReason =
+          r?.check_reason || '';
+
+        const quickScore =
+          r?.quick_score !== undefined
+            && r?.quick_score !== null
+            ? Number(r.quick_score)
+            : null;
+
+
+        const reasonBadgeHtml =
+          checkReason
+            ? `
+              <span class="check-reason-badge">
+                <i class="bi bi-info-circle"></i>
+                ${escapeHtml(checkReason)}
+                ${
+                  quickScore !== null
+                    ? ` · Quick: ${quickScore.toFixed(1)}%`
+                    : ''
+                }
+              </span>
+            `
+            : '';
 
 
         html.push(`
@@ -826,6 +879,8 @@ function renderBatchResult(data) {
                     `
                     : ''
                 }
+
+                ${reasonBadgeHtml}
 
               </div>
 
@@ -914,7 +969,6 @@ function renderBatchResult(data) {
   body.innerHTML =
     html.join('');
 }
-
 
 // =====================================================
 // KHÔNG CÓ KẾT QUẢ
