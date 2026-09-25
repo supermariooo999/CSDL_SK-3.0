@@ -34,7 +34,7 @@ async function editInitiativeById(id) {
 
         // 2. Gọi API detail
         const row = await api(
-            `../api/sang-kien-detail.php?id=${encodeURIComponent(id)}`
+            `api/sang-kien-detail.php?id=${encodeURIComponent(id)}`
         );
 
         if (!row || !row.id) {
@@ -186,7 +186,7 @@ function renderExistingFilesForEdit(files) {
                 </span>
 
                 <a
-                    href="../api/sang-kien-download.php?id=${encodeURIComponent(file.id)}"
+                    href="api/sang-kien-download.php?id=${encodeURIComponent(file.id)}"
                     target="_blank"
                     class="btn btn-sm btn-outline-primary"
                     title="Tải xuống"

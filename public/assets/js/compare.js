@@ -285,7 +285,7 @@ async function onCompareSelected() {
 
     const data =
       await api(
-        '../api/kiem-tra-trung.php',
+        'api/kiem-tra-trung.php',
         {
           method: 'POST',
           body: {

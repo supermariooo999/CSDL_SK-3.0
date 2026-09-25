@@ -72,7 +72,7 @@ window.highlightCommon = function (text, other) {
 // =====================================================
 
 async function loadDanhMuc() {
-  const dm = await api('../api/danh-muc-list.php');
+  const dm = await api('api/danh-muc-list.php');
   
   window.danhMuc = dm;
 
@@ -114,7 +114,7 @@ async function loadSangKien() {
         const q   = document.getElementById('searchQ')?.value.trim() || '';
 
         const url =
-            `../api/sang-kien-list.php` +
+            `api/sang-kien-list.php` +
             `?nam_id=${encodeURIComponent(nam)}` +
             `&linh_vuc_id=${encodeURIComponent(lv)}` +
             `&q=${encodeURIComponent(q)}`;

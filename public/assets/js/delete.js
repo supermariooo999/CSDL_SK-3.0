@@ -28,7 +28,7 @@ async function deleteInitiative(id, code) {
     if (!confirm.isConfirmed) return;
 
     try {
-        const result = await api('../api/sang-kien-delete.php', {
+        const result = await api('api/sang-kien-delete.php', {
             method: 'POST',
             body: { id },
         });

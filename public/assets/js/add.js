@@ -421,7 +421,7 @@ async function saveForm() {
     try {
 
         const result = await api(
-            "../api/sang-kien-save.php",
+            "api/sang-kien-save.php",
             { method: "POST", body: formData }
         );
 
@@ -465,7 +465,7 @@ async function saveForm() {
 async function loadEmployees() {
 
     try {
-        const list = await api("../api/nhan-vien-list.php");
+        const list = await api("api/nhan-vien-list.php");
 
         employees = Array.isArray(list) ? list : [];
 

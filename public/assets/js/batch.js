@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  const dm = await api('../api/danh-muc-list.php');
+  const dm = await api('api/danh-muc-list.php');
   document.getElementById('batchNam').innerHTML =
     dm.nam.map(n => `<option value="${n.id}">Năm ${n.nam}</option>`).join('');
   document.getElementById('batchLinhVuc').innerHTML =
@@ -28,7 +28,7 @@ async function onRunBatch() {
   try {
     const body = { nam_id: nam };
     if (lv) body.linh_vuc_id = lv;
-    const r = await api('../api/kiem-tra-trung-check-batch.php', { method: 'POST', body });
+    const r = await api('api/kiem-tra-trung-check-batch.php', { method: 'POST', body });
     msg.innerHTML = `<div class="alert alert-success py-2 mb-0">
       ✅ Hoàn tất! Đợt #${r.dot_id}
     </div>`;
@@ -42,7 +42,7 @@ async function onRunBatch() {
 }
 
 async function loadDots() {
-  const list = await api('../api/kiem-tra-trung-dot-list.php');
+  const list = await api('api/kiem-tra-trung-dot-list.php');
   const box = document.getElementById('dotList');
 
   if (!list.length) {
@@ -76,7 +76,7 @@ async function showDot(id) {
   box.innerHTML = '<div class="card-body text-center py-5"><div class="spinner-border"></div></div>';
 
   try {
-    const data = await api('../api/kiem-tra-trung-dot.php?id=' + id);
+    const data = await api('api/kiem-tra-trung-dot.php?id=' + id);
     const dot = data.dot;
 
     if (!data.ket_qua.length) {

@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/../includes/helpers.php'; ?>
+<?php require_once __DIR__ . '/includes/helpers.php'; ?>
 
 <!doctype html>
 <html lang="vi">
@@ -18,9 +18,9 @@
         <link rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
 
-        <link href="assets/css/app.css" rel="stylesheet">
-        <link href="assets/css/add.css" rel="stylesheet">
-        <link href="assets/css/modal.css" rel="stylesheet">
+        <link href="public/assets/css/app.css" rel="stylesheet">
+        <link href="public/assets/css/add.css" rel="stylesheet">
+        <link href="public/assets/css/modal.css" rel="stylesheet">
 
         <link rel="stylesheet"
             href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css">
@@ -972,13 +972,13 @@
     <!-- =========================================================
         EXISTING JS
     ========================================================= -->
-    <script src="assets/js/utils.js"></script>
-    <script src="assets/js/common.js"></script>
-    <script src="assets/js/load.js"></script>
-    <script src="assets/js/compare.js"></script>
-    <script src="assets/js/add.js"></script>
-    <script src="assets/js/edit.js"></script>
-    <script src="assets/js/delete.js"></script>
+    <script src="public/assets/js/utils.js"></script>
+    <script src="public/assets/js/common.js"></script>
+    <script src="public/assets/js/load.js"></script>
+    <script src="public/assets/js/compare.js"></script>
+    <script src="public/assets/js/add.js"></script>
+    <script src="public/assets/js/edit.js"></script>
+    <script src="public/assets/js/delete.js"></script>
 
 
     <!-- =========================================================
